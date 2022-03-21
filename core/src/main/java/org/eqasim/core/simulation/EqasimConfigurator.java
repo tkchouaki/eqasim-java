@@ -29,7 +29,7 @@ public class EqasimConfigurator {
 	protected final List<AbstractModule> modules = new LinkedList<>();
 	protected final List<AbstractQSimModule> qsimModules = new LinkedList<>();
 
-	public EqasimConfigurator() {
+	public EqasimConfigurator(boolean addEqasimTrafficQSimModule) {
 		configGroups.addAll(Arrays.asList( //
 				new SwissRailRaptorConfigGroup(), //
 				new EqasimConfigGroup(), //
@@ -45,9 +45,15 @@ public class EqasimConfigurator {
 		));
 
 		qsimModules.addAll(Arrays.asList( //
-				new EqasimTransitQSimModule(), //
-				new EqasimTrafficQSimModule() //
+				new EqasimTransitQSimModule()
 		));
+		if(addEqasimTrafficQSimModule) {
+			qsimModules.add(new EqasimTrafficQSimModule());
+		}
+	}
+
+	public EqasimConfigurator() {
+		this(true);
 	}
 
 	public ConfigGroup[] getConfigGroups() {
