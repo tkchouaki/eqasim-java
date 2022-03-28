@@ -16,13 +16,16 @@ import org.eqasim.vdf.VDFConfigGroup;
 public class RunSimulation {
 	static public void main(String[] args) throws ConfigurationException {
 		CommandLine cmd = new CommandLine.Builder(args) //
-				.requireOptions("config-path", "use-vdf") //
+				.requireOptions("config-path").allowOptions("use-vdf") //
 				.allowPrefixes("mode-choice-parameter", "cost-parameter") //
 				.build();
 
-		IDFConfigurator configurator = new IDFConfigurator();
+		boolean useVdf = false;
+		if(cmd.hasOption("use-vdf")) {
+			useVdf = Boolean.parseBoolean(cmd.getOptionStrict("use-vdf"));
+		}
+		IDFConfigurator configurator = new IDFConfigurator(useVdf);
 		Config config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), configurator.getConfigGroups());
-		boolean useVdf = Boolean.parseBoolean(cmd.getOptionStrict("use-vdf"));
 		cmd.applyConfiguration(config);
 		if(useVdf) {
 			config.addModule(new VDFConfigGroup());
