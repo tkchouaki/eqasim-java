@@ -1,7 +1,6 @@
 package org.eqasim.ile_de_france.grand_paris;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -23,6 +22,7 @@ import org.matsim.core.network.io.NetworkWriter;
 import org.matsim.core.population.routes.LinkNetworkRouteFactory;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.core.utils.misc.Time;
 import org.matsim.pt.transitSchedule.api.*;
 import org.matsim.vehicles.*;
@@ -39,6 +39,7 @@ public class AdjustSchedule {
     private static final String FREQUENCIES_CSV_LINE_ID_COLUMN = "line_id";
     private static final String FREQUENCIES_CSV_FREQUENCY_COLUMN = "frequency";
     private static final Double MAX_DEPARTURE_TIME = 24.0 * 3600;
+    private static final String DEFAULT_SPEED_KM_H = "40";
 
     public static TransitStopFacility getStopFacilityFromMapOrFallbackTransitLine(String stopFacilityName, Map<String, TransitStopFacility> map, TransitSchedule schedule, String lineId, Map<String, Id<TransitLine>> fallbacksMap) {
         if (!map.containsKey(stopFacilityName)) {
@@ -67,7 +68,11 @@ public class AdjustSchedule {
         CommandLine cmd = new CommandLine.Builder(args) //
                 .requireOptions("schedule-path", "network-path", "facilities-path", "travel-times-path", "frequencies-path", "vehicles-path",
                         "output-schedule-path", "output-vehicles-path", "output-network-path") //
+                .allowOptions("fallback-speed", "override-travel-times")
                 .build();
+
+        double fallbackSpeed = Double.parseDouble(cmd.getOption("fallback-speed").orElse(DEFAULT_SPEED_KM_H));
+        boolean overrideTravelTimes = cmd.hasOption("override-travel-times") && Boolean.parseBoolean(cmd.getOptionStrict("override-travel-times"));
 
         Config config = ConfigUtils.createConfig();
         Scenario scenario = ScenarioUtils.createScenario(config);
@@ -157,6 +162,10 @@ public class AdjustSchedule {
                     TransitStopFacility fromStop = getStopFacilityFromMapOrFallbackTransitLine(fromName, facilitiesByName, schedule, transitLine, lineStopsFallbacks);
                     TransitStopFacility toStop = getStopFacilityFromMapOrFallbackTransitLine(toName, facilitiesByName, schedule, transitLine, lineStopsFallbacks);
                     double travelTime = Double.parseDouble(row.get(header.indexOf(TRAVEL_TIMES_CSV_TRAVEL_TIME_COLUMN)));
+                    if(travelTime < 0 || overrideTravelTimes) {
+                        double euclideanDistance_km = CoordUtils.calcEuclideanDistance(fromStop.getCoord(), toStop.getCoord()) * 1e-3;
+                        travelTime = 3600 * euclideanDistance_km / fallbackSpeed;
+                    }
                     lineTravelTimes.computeIfAbsent(fromStop.getId(), n -> new HashMap<>()).put(toStop.getId(), travelTime);
                     lineTravelTimes.computeIfAbsent(toStop.getId(), n -> new HashMap<>()).put(fromStop.getId(), travelTime);
                     if (stops.size() == 0) {
