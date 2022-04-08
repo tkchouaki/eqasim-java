@@ -48,6 +48,7 @@
 									<goal>shade</goal>
 								</goals>
 								<configuration>
+									<outputFile>${project.basedir}/target/${artifactId}-${version}-standalone.jar</outputFile>
 									<transformers>
 										<transformer
 											implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer" />
