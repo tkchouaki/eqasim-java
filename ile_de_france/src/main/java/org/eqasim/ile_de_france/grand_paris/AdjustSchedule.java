@@ -214,8 +214,6 @@ public class AdjustSchedule {
             for (String line : routes.keySet()) {
                 Id<TransitLine> transitLineId = Id.create("GPE:" + line, TransitLine.class);
                 if (lineStopsFallbacks.containsKey(line)) {
-                    System.out.println("line " + line + " will be created with fallback id " + lineStopsFallbacks.get(line).toString() + " instead of " + transitLineId.toString());
-                    transitLineId = lineStopsFallbacks.get(line);
                     schedule.removeTransitLine(schedule.getTransitLines().get(lineStopsFallbacks.get(line)));
                 }
                 TransitLine transitLine = schedule.getFactory().createTransitLine(transitLineId);
