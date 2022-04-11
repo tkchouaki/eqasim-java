@@ -68,11 +68,12 @@ public class AdjustSchedule {
         CommandLine cmd = new CommandLine.Builder(args) //
                 .requireOptions("schedule-path", "network-path", "facilities-path", "travel-times-path", "frequencies-path", "vehicles-path",
                         "output-schedule-path", "output-vehicles-path", "output-network-path") //
-                .allowOptions("fallback-speed", "override-travel-times")
+                .allowOptions("fallback-speed", "override-travel-times", "mapping")
                 .build();
 
         double fallbackSpeed = Double.parseDouble(cmd.getOption("fallback-speed").orElse(DEFAULT_SPEED_KM_H));
         boolean overrideTravelTimes = cmd.hasOption("override-travel-times") && Boolean.parseBoolean(cmd.getOptionStrict("override-travel-times"));
+        boolean doMapping = ! cmd.hasOption("mapping") || Boolean.parseBoolean(cmd.getOptionStrict("mapping"));
 
         Config config = ConfigUtils.createConfig();
         Scenario scenario = ScenarioUtils.createScenario(config);
@@ -91,6 +92,9 @@ public class AdjustSchedule {
         Id<VehicleType> subwayVehicleTypeId = Id.create("Subway", VehicleType.class);
         assert (transitVehicles.getVehicleTypes().containsKey(subwayVehicleTypeId));
         VehicleType subwayVehicleType = transitVehicles.getVehicleTypes().get(subwayVehicleTypeId);
+
+        Set<String> ptModeSet = new HashSet<>();
+        ptModeSet.add("pt");
 
 
         {
@@ -121,17 +125,18 @@ public class AdjustSchedule {
                     facility.setName(row.get(header.indexOf(FACILITIES_CSV_STOP_NAME_COLUMN)));
                     schedule.addStopFacility(facility);
                     facilitiesByName.put(facility.getName(), facility);
+                    if (doMapping) {
+                        Node stopNode = network.getFactory().createNode(Id.createNodeId("GPE:" + code), facility.getCoord());
+                        network.addNode(stopNode);
 
-                    Node stopNode = network.getFactory().createNode(Id.createNodeId("GPE:" + code), facility.getCoord());
-                    network.addNode(stopNode);
+                        Link stopLink = network.getFactory().createLink(Id.createLinkId("GPE:" + code), stopNode, stopNode);
+                        stopLink.setAllowedModes(ptModeSet);
+                        network.addLink(stopLink);
 
-                    Link stopLink = network.getFactory().createLink(Id.createLinkId("GPE:" + code), stopNode, stopNode);
-                    network.addLink(stopLink);
-
-                    facility.setLinkId(stopLink.getId());
+                        facility.setLinkId(stopLink.getId());
+                    }
                 }
             }
-
             reader.close();
         }
 
@@ -207,7 +212,13 @@ public class AdjustSchedule {
 
         {//Creating the transit lines (and overriding the ones with fallbacks)
             for (String line : routes.keySet()) {
-                TransitLine transitLine = schedule.getFactory().createTransitLine(Id.create("GPE:" + line, TransitLine.class));
+                Id<TransitLine> transitLineId = Id.create("GPE:" + line, TransitLine.class);
+                if (lineStopsFallbacks.containsKey(line)) {
+                    System.out.println("line " + line + " will be created with fallback id " + lineStopsFallbacks.get(line).toString() + " instead of " + transitLineId.toString());
+                    transitLineId = lineStopsFallbacks.get(line);
+                    schedule.removeTransitLine(schedule.getTransitLines().get(lineStopsFallbacks.get(line)));
+                }
+                TransitLine transitLine = schedule.getFactory().createTransitLine(transitLineId);
                 schedule.addTransitLine(transitLine);
                 List<TransitRouteStop> forwardStops = new LinkedList<>();
                 List<TransitRouteStop> backwardStops = new LinkedList<>();
@@ -225,31 +236,38 @@ public class AdjustSchedule {
                         forwardTime += otherTravelTimes.get(line).get(forwardStops.get(forwardStops.size() - 1).getStopFacility().getId()).get(forwardStop.getId());
                         backwardTime += otherTravelTimes.get(line).get(backwardStops.get(backwardStops.size() - 1).getStopFacility().getId()).get(backwardStop.getId());
 
-                        Id<Link> previousForwardLinkId = forwardLinkIds.get(forwardLinkIds.size() - 1);
-                        Id<Link> previousBackwardLinkId = backwardLinkIds.get(backwardLinkIds.size() - 1);
+                        if (doMapping) {
+                            Id<Link> previousForwardLinkId = forwardLinkIds.get(forwardLinkIds.size() - 1);
+                            Id<Link> previousBackwardLinkId = backwardLinkIds.get(backwardLinkIds.size() - 1);
 
-                        Link forwardLink = network.getFactory().createLink( //
-                                Id.createLinkId("GPE:" + line + ":forward:" + i), //
-                                network.getLinks().get(previousForwardLinkId).getToNode(), //
-                                network.getLinks().get(forwardStop.getLinkId()).getFromNode());
+                            Link forwardLink = network.getFactory().createLink( //
+                                    Id.createLinkId("GPE:" + line + ":forward:" + i), //
+                                    network.getLinks().get(previousForwardLinkId).getToNode(), //
+                                    network.getLinks().get(forwardStop.getLinkId()).getFromNode());
 
-                        Link backwardLink = network.getFactory().createLink( //
-                                Id.createLinkId("GPE:" + line + ":backward:" + i), //
-                                network.getLinks().get(previousBackwardLinkId).getToNode(), //
-                                network.getLinks().get(backwardStop.getLinkId()).getFromNode());
+                            Link backwardLink = network.getFactory().createLink( //
+                                    Id.createLinkId("GPE:" + line + ":backward:" + i), //
+                                    network.getLinks().get(previousBackwardLinkId).getToNode(), //
+                                    network.getLinks().get(backwardStop.getLinkId()).getFromNode());
 
-                        network.addLink(forwardLink);
-                        network.addLink(backwardLink);
+                            forwardLink.setAllowedModes(ptModeSet);
+                            backwardLink.setAllowedModes(ptModeSet);
 
-                        forwardLinkIds.add(forwardLink.getId());
-                        forwardLinkIds.add(forwardStop.getLinkId());
+                            network.addLink(forwardLink);
+                            network.addLink(backwardLink);
 
-                        backwardLinkIds.add(backwardLink.getId());
-                        backwardLinkIds.add(backwardStop.getLinkId());
+                            forwardLinkIds.add(forwardLink.getId());
+                            forwardLinkIds.add(forwardStop.getLinkId());
+
+                            backwardLinkIds.add(backwardLink.getId());
+                            backwardLinkIds.add(backwardStop.getLinkId());
+                        }
 
                     } else {
-                        forwardLinkIds.add(forwardStop.getLinkId());
-                        backwardLinkIds.add(backwardStop.getLinkId());
+                        if(doMapping) {
+                            forwardLinkIds.add(forwardStop.getLinkId());
+                            backwardLinkIds.add(backwardStop.getLinkId());
+                        }
                     }
 
                     TransitRouteStop forwardTransitRouteStop = schedule.getFactory().createTransitRouteStop(forwardStop, forwardTime, forwardTime);
@@ -260,21 +278,25 @@ public class AdjustSchedule {
 
                 LinkNetworkRouteFactory routeFactory = new LinkNetworkRouteFactory();
 
-                NetworkRoute forwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(forwardLinkIds.get(0),
-                        forwardLinkIds.get(forwardLinkIds.size() - 1));
-                forwardNetworkRoute.setLinkIds(forwardLinkIds.get(0), forwardLinkIds.subList(1, forwardLinkIds.size() - 1),
-                        forwardLinkIds.get(forwardLinkIds.size() - 1));
+                NetworkRoute forwardNetworkRoute = null;
+                NetworkRoute backwardNetworkRoute = null;
+                if(doMapping) {
+                    forwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(forwardLinkIds.get(0),
+                            forwardLinkIds.get(forwardLinkIds.size() - 1));
+                    forwardNetworkRoute.setLinkIds(forwardLinkIds.get(0), forwardLinkIds.subList(1, forwardLinkIds.size() - 1),
+                            forwardLinkIds.get(forwardLinkIds.size() - 1));
 
-                NetworkRoute backwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(backwardLinkIds.get(0),
-                        backwardLinkIds.get(backwardLinkIds.size() - 1));
-                backwardNetworkRoute.setLinkIds(backwardLinkIds.get(0),
-                        backwardLinkIds.subList(1, backwardLinkIds.size() - 1),
-                        backwardLinkIds.get(backwardLinkIds.size() - 1));
+                    backwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(backwardLinkIds.get(0),
+                            backwardLinkIds.get(backwardLinkIds.size() - 1));
+                    backwardNetworkRoute.setLinkIds(backwardLinkIds.get(0),
+                            backwardLinkIds.subList(1, backwardLinkIds.size() - 1),
+                            backwardLinkIds.get(backwardLinkIds.size() - 1));
+                }
+
 
                 TransitRoute forwardRoute = schedule.getFactory().createTransitRoute(
                         Id.create("GPE:" + line + ":forward", TransitRoute.class), forwardNetworkRoute, forwardStops,
                         "subway");
-
                 TransitRoute backwardRoute = schedule.getFactory().createTransitRoute(
                         Id.create("GPE:" + line + ":backward", TransitRoute.class), backwardNetworkRoute, backwardStops,
                         "subway");
@@ -299,9 +321,6 @@ public class AdjustSchedule {
 
                     forwardRoute.addDeparture(forwardDeparture);
                     backwardRoute.addDeparture(backwardDeparture);
-                }
-                if (lineStopsFallbacks.containsKey(line)) {
-                    schedule.removeTransitLine(schedule.getTransitLines().get(lineStopsFallbacks.get(line)));
                 }
             }
         }
