@@ -39,18 +39,21 @@ import org.matsim.core.scenario.ScenarioUtils;
 import java.nio.file.Path;;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Random;
 import java.util.Set;
 
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path", "drt-vehicles-path").allowOptions("replace-trips-mode") //
+                .requireOptions("config-path", "drt-vehicles-path").allowOptions("replace-trips-mode", "replace-probability") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
         IDFConfigurator configurator = new IDFConfigurator(false);
         String configPath = cmd.getOptionStrict("config-path");
         String drtVehiclesPath = cmd.getOptionStrict("drt-vehicles-path");
+        Double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;
+        Random random = new Random(1234);
         String relativeDrtVehiclePath = Path.of(configPath).getParent().relativize(Path.of(drtVehiclesPath)).toString();
         Config config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), configurator.getConfigGroups());
 
@@ -134,11 +137,13 @@ public class RunDrtSimulation {
             for(Person person : scenario.getPopulation().getPersons().values()) {
                 for(Plan plan : person.getPlans()) {
                     for(PlanElement planElement : plan.getPlanElements()) {
-                        if(planElement instanceof Leg) {
-                            Leg leg = (Leg) planElement;
-                            if(leg.getMode().equals(mode)) {
-                                leg.setRoute(null);
-                                leg.setMode("drt");
+                        if(random.nextDouble() < replaceProbability) {
+                            if(planElement instanceof Leg) {
+                                Leg leg = (Leg) planElement;
+                                if(leg.getMode().equals(mode)) {
+                                    leg.setRoute(null);
+                                    leg.setMode("drt");
+                                }
                             }
                         }
                     }
