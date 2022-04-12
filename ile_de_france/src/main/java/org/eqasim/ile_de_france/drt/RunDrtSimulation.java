@@ -12,6 +12,10 @@ import org.eqasim.ile_de_france.drt.rejections.RejectionConstraint;
 import org.eqasim.ile_de_france.drt.rejections.RejectionModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.contrib.drt.optimizer.insertion.DrtInsertionSearchParams;
 import org.matsim.contrib.drt.optimizer.insertion.SelectiveInsertionSearchParams;
 import org.matsim.contrib.drt.routing.DrtRoute;
@@ -40,7 +44,7 @@ import java.util.Set;
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path").allowOptions("drt-vehicles-path") //
+                .requireOptions("config-path", "drt-vehicles-path").allowOptions("replace-trips-mode") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
@@ -125,6 +129,23 @@ public class RunDrtSimulation {
 
         ScenarioUtils.loadScenario(scenario);
 
+        if(cmd.hasOption("replace-trips-mode")) {
+            String mode = cmd.getOptionStrict("replace-trips-mode");
+            for(Person person : scenario.getPopulation().getPersons().values()) {
+                for(Plan plan : person.getPlans()) {
+                    for(PlanElement planElement : plan.getPlanElements()) {
+                        if(planElement instanceof Leg) {
+                            Leg leg = (Leg) planElement;
+                            if(leg.getMode().equals(mode)) {
+                                leg.setRoute(null);
+                                leg.setMode("drt");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         Controler controller = new Controler(scenario);
         configurator.configureController(controller);
         controller.addOverridingModule(new EqasimAnalysisModule());
@@ -148,8 +169,6 @@ public class RunDrtSimulation {
             controller.addOverridingModule(new RejectionModule(Arrays.asList("drt")));
             controller.addOverridingModule(new DvrpAnalsisModule());
         }
-
-        controller.run();
 
         controller.run();
     }
