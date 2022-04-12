@@ -104,7 +104,12 @@ public class TripListener implements ActivityStartEventHandler, ActivityEndEvent
 			} else {
 				TripListenerItem trip = ongoing.remove(event.getPersonId());
 
-				if (trip != null) {
+				// Don't know why but we have an error an error in mainModeIdentifier.identifyMainMode(trip.elements)
+				// when elements.size() == 0
+				// This happened for the drt driver agent for which two activities are separated with an empty trip
+				// Activities of type DrtStay
+				// mainModeIdentifier is a MultiModeDrtMainModeIdentifier and delegates to the regular NetworkIdentifier
+				if (trip != null && trip.elements.size() > 0) {
 					trip.returning = event.getActType().equals("home");
 					trip.followingPurpose = event.getActType();
 					trip.travelTime = event.getTime() - trip.departureTime;
