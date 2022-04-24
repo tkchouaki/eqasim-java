@@ -5,7 +5,6 @@ import org.eqasim.core.components.transit.EqasimTransitQSimModule;
 import org.eqasim.core.simulation.analysis.EqasimAnalysisModule;
 import org.eqasim.core.simulation.mode_choice.EqasimModeChoiceModule;
 import org.eqasim.ile_de_france.IDFConfigurator;
-import org.eqasim.ile_de_france.drt.IDFDrtModule;
 import org.eqasim.ile_de_france.drt.analysis.DvrpAnalsisModule;
 import org.eqasim.ile_de_france.drt.mode_choice.IDFDrtModeAvailability;
 import org.eqasim.ile_de_france.drt.rejections.RejectionConstraint;
@@ -30,6 +29,7 @@ import org.matsim.contrib.dvrp.run.DvrpQSimComponents;
 import org.matsim.contribs.discrete_mode_choice.modules.config.DiscreteModeChoiceConfigGroup;
 import org.matsim.core.config.CommandLine;
 import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 import org.matsim.core.config.groups.QSimConfigGroup;
@@ -45,26 +45,39 @@ import java.util.Set;
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path", "drt-vehicles-path").allowOptions("replace-trips-mode", "replace-probability") //
+                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
         IDFConfigurator configurator = new IDFConfigurator(false);
         String configPath = cmd.getOptionStrict("config-path");
-        String drtVehiclesPath = cmd.getOptionStrict("drt-vehicles-path");
+
         Double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;
         Random random = new Random(1234);
-        String relativeDrtVehiclePath = Path.of(configPath).getParent().relativize(Path.of(drtVehiclesPath)).toString();
-        Config config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), configurator.getConfigGroups());
+        Config config = null;
+        ConfigGroup[] configGroups = configurator.getConfigGroups();
+        if(cmd.hasOption("drt-vehicles-path")) {
+            config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), configGroups);
+        } else {
+            ConfigGroup[] newConfigGroups = new ConfigGroup[configGroups.length+1];
+            for(int i=0; i<configGroups.length; i++) {
+                newConfigGroups[i] = configGroups[i];
+            }
+            newConfigGroups[configGroups.length] = new MultiModeDrtConfigGroup();
+            config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), newConfigGroups);
+        }
 
         { // Configure DVRP
             DvrpConfigGroup dvrpConfig = new DvrpConfigGroup();
             config.addModule(dvrpConfig);
         }
 
-        MultiModeDrtConfigGroup multiModeDrtConfig = new MultiModeDrtConfigGroup();
+        MultiModeDrtConfigGroup multiModeDrtConfig = null;
 
-        { // Configure DRT
+        if(cmd.hasOption("drt-vehicles-path")){ // Configure DRT
+            String drtVehiclesPath = cmd.getOptionStrict("drt-vehicles-path");
+            String relativeDrtVehiclePath = Path.of(configPath).getParent().relativize(Path.of(drtVehiclesPath)).toString();
+            multiModeDrtConfig = new MultiModeDrtConfigGroup();
             config.addModule(multiModeDrtConfig);
 
             DrtConfigGroup drtConfig = new DrtConfigGroup();
@@ -86,10 +99,16 @@ public class RunDrtSimulation {
             config.qsim().setStartTime(0.0);
             config.qsim().setSimStarttimeInterpretation(QSimConfigGroup.StarttimeInterpretation.onlyUseStarttime);
         }
+        else {
+            if(config.getModules().get(MultiModeDrtConfigGroup.GROUP_NAME) == null) {
+                throw new IllegalStateException("When drt-vehicles-path argument is not passed, MultiModeDrt module should be specified in the configuration");
+            }
+            multiModeDrtConfig = (MultiModeDrtConfigGroup) config.getModules().get(MultiModeDrtConfigGroup.GROUP_NAME);
+        }
 
         cmd.applyConfiguration(config);
 
-        { // Add the DRT mode to the choice model
+        if(cmd.hasOption("drt-vehicles-path")){ // Add the DRT mode to the choice model
             DiscreteModeChoiceConfigGroup dmcConfig = DiscreteModeChoiceConfigGroup.getOrCreate(config);
 
             // Add DRT to the available modes
@@ -117,7 +136,7 @@ public class RunDrtSimulation {
             eqasimConfig.setTripAnalysisInterval(1);
         }
 
-        { // Set up some defaults for MATSim scoring
+        if(cmd.hasOption("drt-vehicles-path")){ // Set up some defaults for MATSim scoring
             PlanCalcScoreConfigGroup.ModeParams modeParams = new PlanCalcScoreConfigGroup.ModeParams("drt");
             config.planCalcScore().addModeParams(modeParams);
         }
@@ -156,16 +175,17 @@ public class RunDrtSimulation {
         controller.addOverridingModule(new EqasimAnalysisModule());
         controller.addOverridingModule(new EqasimModeChoiceModule());
         controller.addOverridingModule(new IDFModeChoiceModule(cmd));
-
         { // Configure controller for DRT
             controller.addOverridingModule(new DvrpModule());
             controller.addOverridingModule(new MultiModeDrtModule());
 
+            MultiModeDrtConfigGroup finalMultiModeDrtConfig = multiModeDrtConfig;
+            Config finalConfig = config;
             controller.configureQSimComponents(components -> {
-                DvrpQSimComponents.activateAllModes(multiModeDrtConfig).configure(components);
+                DvrpQSimComponents.activateAllModes(finalMultiModeDrtConfig).configure(components);
 
                 // Need to re-do this as now it is combined with DRT
-                EqasimTransitQSimModule.configure(components, config);
+                EqasimTransitQSimModule.configure(components, finalConfig);
             });
         }
 
