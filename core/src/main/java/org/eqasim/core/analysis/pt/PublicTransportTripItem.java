@@ -16,8 +16,14 @@ public class PublicTransportTripItem {
 	public Id<TransitLine> transitLineId;
 	public Id<TransitRoute> transitRouteId;
 
+	public double distance;
+	public double travelTime;
+	public double vehicleDepartureTime;
+	public String routeMode;
+	public String lineName;
+
 	public PublicTransportTripItem(Id<Person> personId, int personTripId, Id<TransitStopFacility> accessStopId,
-			Id<TransitStopFacility> egressStopId, Id<TransitLine> transitLineId, Id<TransitRoute> transitRouteId) {
+			Id<TransitStopFacility> egressStopId, Id<TransitLine> transitLineId, Id<TransitRoute> transitRouteId, double distance, double vehicleDepartureTime, double travelTime, String lineName, String routeMode) {
 		this.personId = personId;
 		this.personTripId = personTripId;
 
@@ -26,5 +32,12 @@ public class PublicTransportTripItem {
 
 		this.transitLineId = transitLineId;
 		this.transitRouteId = transitRouteId;
+
+		this.distance = distance;
+		this.travelTime = travelTime;
+		this.vehicleDepartureTime = vehicleDepartureTime;
+
+		this.lineName = lineName;
+		this.routeMode = routeMode;
 	}
 }

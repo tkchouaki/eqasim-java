@@ -9,7 +9,9 @@ import org.eqasim.ile_de_france.drt.analysis.DvrpAnalsisModule;
 import org.eqasim.ile_de_france.drt.mode_choice.IDFDrtModeAvailability;
 import org.eqasim.ile_de_france.drt.rejections.RejectionConstraint;
 import org.eqasim.ile_de_france.drt.rejections.RejectionModule;
+import org.eqasim.ile_de_france.feeder.FeederModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -190,9 +192,10 @@ public class RunDrtSimulation {
         }
 
         { // Add overrides for Corsica + DRT
-            controller.addOverridingModule(new IDFDrtModule(cmd));
+            controller.addOverridingModule(new IDFDrtModule(cmd, true));
             controller.addOverridingModule(new RejectionModule(Arrays.asList("drt")));
             controller.addOverridingModule(new DvrpAnalsisModule());
+            controller.addOverridingModule(new FeederModule(null, scenario.getTransitSchedule()));
         }
 
         controller.run();

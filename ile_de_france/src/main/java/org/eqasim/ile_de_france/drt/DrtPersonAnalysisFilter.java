@@ -7,7 +7,7 @@ import org.matsim.api.core.v01.population.Person;
 public class DrtPersonAnalysisFilter implements PersonAnalysisFilter {
 	@Override
 	public boolean analyzePerson(Id<Person> personId) {
-		if (personId.toString().startsWith("drt")) {
+		if (personId.toString().contains("drt") || personId.toString().contains("pt")) {
 			return false;
 		}
 

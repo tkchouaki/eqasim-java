@@ -16,6 +16,8 @@ import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtCostParameters;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtModeParameters;
 import org.eqasim.ile_de_france.drt.mode_choice.utilities.DrtPredictor;
 import org.eqasim.ile_de_france.drt.mode_choice.utilities.DrtUtilityEstimator;
+import org.eqasim.ile_de_france.feeder.FeederConstraint;
+import org.eqasim.ile_de_france.feeder.FeederUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFModeParameters;
 import org.matsim.core.config.CommandLine;
@@ -26,19 +28,31 @@ import java.util.Map;
 public class IDFDrtModule extends AbstractEqasimExtension {
 	private final CommandLine commandLine;
 
-	public IDFDrtModule(CommandLine commandLine) {
+	private final boolean useFeeder;
+
+	public IDFDrtModule(CommandLine commandLine ) {
+		this(commandLine, false);
+	}
+
+	public IDFDrtModule(CommandLine commandLine, boolean useFeeder) {
 		this.commandLine = commandLine;
+		this.useFeeder = useFeeder;
 	}
 
 	@Override
 	protected void installEqasimExtension() {
 		// Configure mode availability
-		bindModeAvailability(IDFDrtModeAvailability.NAME).to(IDFDrtModeAvailability.class);
+		bindModeAvailability(IDFDrtModeAvailability.NAME).toInstance(new IDFDrtModeAvailability(this.useFeeder));
 
 		// Configure choice alternative for DRT
 		bindUtilityEstimator("drt").to(DrtUtilityEstimator.class);
 		bindCostModel("drt").to(DrtCostModel.class);
 		bind(DrtPredictor.class);
+
+		if(useFeeder) {
+			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
+			bindTripConstraintFactory(FeederConstraint.NAME).to(FeederConstraint.Factory.class);
+		}
 
 		// Define filter for trip analysis
 		bind(PersonAnalysisFilter.class).to(DrtPersonAnalysisFilter.class);

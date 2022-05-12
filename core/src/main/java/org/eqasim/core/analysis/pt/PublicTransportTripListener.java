@@ -16,11 +16,20 @@ import org.matsim.api.core.v01.events.handler.PersonDepartureEventHandler;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.core.api.experimental.events.AgentWaitingForPtEvent;
 import org.matsim.core.api.experimental.events.handler.AgentWaitingForPtEventHandler;
+import org.matsim.pt.transitSchedule.api.TransitLine;
+import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
 
 public class PublicTransportTripListener implements PersonDepartureEventHandler, ActivityStartEventHandler,
 		GenericEventHandler, AgentWaitingForPtEventHandler {
 	final private Collection<PublicTransportTripItem> trips = new LinkedList<>();
 	final private Map<Id<Person>, Integer> tripIndices = new HashMap<>();
+	final private Map<Id<Person>, Double> lastDepartureTime = new HashMap<>();
+	final private TransitSchedule schedule;
+
+	public PublicTransportTripListener(TransitSchedule schedule) {
+		this.schedule = schedule;
+	}
 
 	public Collection<PublicTransportTripItem> getTripItems() {
 		return trips;
@@ -33,12 +42,17 @@ public class PublicTransportTripListener implements PersonDepartureEventHandler,
 	}
 
 	public void handleEvent(PublicTransitEvent event) {
+		TransitLine transitLine= this.schedule.getTransitLines().get(event.getTransitLineId());
+		TransitRoute transitRoute = transitLine.getRoutes().get(event.getTransitRouteId());
 		trips.add(new PublicTransportTripItem(event.getPersonId(), //
 				tripIndices.get(event.getPersonId()), //
 				event.getAccessStopId(), //
 				event.getEgressStopId(), //
 				event.getTransitLineId(), //
-				event.getTransitRouteId()));
+				event.getTransitRouteId(),
+				event.getTravelDistance(),
+				event.getVehicleDepartureTime(),
+				event.getTime() - this.lastDepartureTime.get(event.getPersonId()),transitLine.getName(), transitRoute.getTransportMode()));
 	}
 
 	@Override
@@ -62,6 +76,7 @@ public class PublicTransportTripListener implements PersonDepartureEventHandler,
 		} else {
 			tripIndices.compute(event.getPersonId(), (k, v) -> v + 1);
 		}
+		this.lastDepartureTime.put(event.getPersonId(), event.getTime());
 	}
 
 	@Override

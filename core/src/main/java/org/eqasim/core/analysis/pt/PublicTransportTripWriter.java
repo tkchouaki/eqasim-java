@@ -41,7 +41,12 @@ public class PublicTransportTripWriter {
 				"access_stop_id", //
 				"egress_stop_id", //
 				"transit_line_id", //
-				"transit_route_id" //
+				"transit_route_id",
+				"travel_distance",
+				"vehicle_departure_time",
+				"travel_time",
+				"line_name",
+				"route_mode"//
 		});
 	}
 
@@ -52,7 +57,12 @@ public class PublicTransportTripWriter {
 				trip.accessStopId.toString(), //
 				trip.egressStopId.toString(), //
 				trip.transitLineId.toString(), //
-				trip.transitRouteId.toString() //
+				trip.transitRouteId.toString(),
+				String.valueOf(trip.distance),
+				String.valueOf(trip.vehicleDepartureTime),
+				String.valueOf(trip.travelTime),
+				trip.lineName,
+				trip.routeMode//
 		});
 	}
 }

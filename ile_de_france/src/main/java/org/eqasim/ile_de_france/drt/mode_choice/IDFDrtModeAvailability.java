@@ -13,13 +13,19 @@ public class IDFDrtModeAvailability implements ModeAvailability {
 	static public final String NAME = "ParisDrtModeAvailability";
 
 	private final ModeAvailability delegate = new IDFModeAvailability();
+	private final boolean useFeeder;
+
+
+	public IDFDrtModeAvailability(boolean useFeeder) {
+		this.useFeeder = useFeeder;
+	}
 
 	@Override
 	public Collection<String> getAvailableModes(Person person, List<DiscreteModeChoiceTrip> trips) {
 		Collection<String> modes = delegate.getAvailableModes(person, trips);
 
 		if (modes.contains(TransportMode.walk)) {
-			modes.add("drt");
+			modes.add(this.useFeeder ? "feeder" : "drt");
 		}
 
 		return modes;
