@@ -32,6 +32,7 @@ import org.matsim.core.config.CommandLine;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.config.groups.GlobalConfigGroup;
 import org.matsim.core.config.groups.PlanCalcScoreConfigGroup;
 import org.matsim.core.config.groups.QSimConfigGroup;
 import org.matsim.core.controler.Controler;
@@ -72,6 +73,7 @@ public class RunDrtSimulation {
             DvrpConfigGroup dvrpConfig = new DvrpConfigGroup();
             config.addModule(dvrpConfig);
         }
+        cmd.applyConfiguration(config);
 
         MultiModeDrtConfigGroup multiModeDrtConfig = null;
 
@@ -107,7 +109,9 @@ public class RunDrtSimulation {
             multiModeDrtConfig = (MultiModeDrtConfigGroup) config.getModules().get(MultiModeDrtConfigGroup.GROUP_NAME);
         }
 
-        cmd.applyConfiguration(config);
+        for(DrtConfigGroup drtConfigGroup : multiModeDrtConfig.getModalElements()) {
+            drtConfigGroup.setNumberOfThreads(config.global().getNumberOfThreads());
+        }
 
         if(cmd.hasOption("drt-vehicles-path")){ // Add the DRT mode to the choice model
             DiscreteModeChoiceConfigGroup dmcConfig = DiscreteModeChoiceConfigGroup.getOrCreate(config);
