@@ -1,5 +1,6 @@
 package org.eqasim.ile_de_france.drt;
 
+import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
@@ -14,8 +15,7 @@ import org.eqasim.ile_de_france.drt.mode_choice.IDFDrtModeAvailability;
 import org.eqasim.ile_de_france.drt.mode_choice.cost.DrtCostModel;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtCostParameters;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtModeParameters;
-import org.eqasim.ile_de_france.drt.mode_choice.utilities.DrtPredictor;
-import org.eqasim.ile_de_france.drt.mode_choice.utilities.DrtUtilityEstimator;
+import org.eqasim.ile_de_france.drt.mode_choice.utilities.*;
 import org.eqasim.ile_de_france.feeder.FeederConstraint;
 import org.eqasim.ile_de_france.feeder.FeederUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
@@ -47,7 +47,18 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 		// Configure choice alternative for DRT
 		bindUtilityEstimator("drt").to(DrtUtilityEstimator.class);
 		bindCostModel("drt").to(DrtCostModel.class);
-		bind(DrtPredictor.class);
+		Provider<DrtVariablesExperienceEstimator> provider = new Provider<DrtVariablesExperienceEstimator>() {
+			@Inject
+			@Named("drt")
+			CostModel costModel;
+
+			@Override
+			public DrtVariablesExperienceEstimator get() {
+				return new DrtVariablesExperienceEstimator(costModel);
+			}
+		};
+		bind(DrtPredictorInterface.class).to(DrtPredictor.class);
+		addEventHandlerBinding().toProvider(provider).asEagerSingleton();
 
 		if(useFeeder) {
 			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
