@@ -15,11 +15,13 @@ import org.matsim.contribs.discrete_mode_choice.model.DiscreteModeChoiceTrip;
 import java.util.LinkedList;
 import java.util.List;
 
+//TODO check TripStructureUtils and use it to cut the plan elements to separate trips
+
 public class FeederUtilityEstimator implements UtilityEstimator {
 	private final DrtUtilityEstimator drtEstimator;
 	private final PtUtilityEstimator ptEstimator;
 	private final IDFDrtModeParameters parameters;
-	private static final boolean FORCE_FEEDER = false;
+	private static final boolean FORCE_FEEDER = true;
 
 	@Inject
 	public FeederUtilityEstimator(DrtUtilityEstimator drtEstimator, PtUtilityEstimator ptEstimator,

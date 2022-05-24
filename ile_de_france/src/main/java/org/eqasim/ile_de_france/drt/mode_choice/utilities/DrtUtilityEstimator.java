@@ -12,10 +12,10 @@ import java.util.List;
 
 public class DrtUtilityEstimator implements UtilityEstimator {
 	private final IDFDrtModeParameters parameters;
-	private final DrtPredictor predictor;
+	private final DrtPredictorInterface predictor;
 
 	@Inject
-	public DrtUtilityEstimator(IDFDrtModeParameters parameters, DrtPredictor predictor) {
+	public DrtUtilityEstimator(IDFDrtModeParameters parameters, DrtPredictorInterface predictor) {
 		this.parameters = parameters;
 		this.predictor = predictor;
 	}

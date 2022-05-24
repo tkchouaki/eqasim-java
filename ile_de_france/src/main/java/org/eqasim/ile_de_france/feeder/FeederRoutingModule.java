@@ -16,6 +16,9 @@ import java.util.*;
 //TODO see OutsideConstraint class
 //TODO can inject pt & DRT estimators
 //TODO LOOK AT SWITCH BETWEEN CAR & PT for FEEDER
+//TODO LOOK AT WAITING TIMES FOR DRT
+//TODO ALSO REJECTIONS
+//TODO Check DRT's min cost flow code for example on gathering drt perf stats
 //TODO Gare du nord 5h25
 
 

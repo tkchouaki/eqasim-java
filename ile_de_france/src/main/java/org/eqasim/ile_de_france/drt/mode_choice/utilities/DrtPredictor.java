@@ -15,7 +15,7 @@ import org.matsim.core.router.TripStructureUtils;
 
 import java.util.List;
 
-public class DrtPredictor extends CachedVariablePredictor<DrtVariables> {
+public class DrtPredictor extends CachedVariablePredictor<DrtVariables> implements DrtPredictorInterface{
 	private CostModel costModel;
 
 	@Inject

@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import org.apache.log4j.Logger;
 import org.eqasim.core.components.EqasimMainModeIdentifier;
+import org.eqasim.core.components.FeederMainModeIdentifier;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.config.CommandLine;
@@ -57,7 +58,7 @@ public class RunTripAnalysis {
 
 		String outputPath = cmd.getOptionStrict("output-path");
 
-		MainModeIdentifier mainModeIdentifier = new EqasimMainModeIdentifier();
+		MainModeIdentifier mainModeIdentifier = new FeederMainModeIdentifier();
 
 		Collection<String> vehicleModes = Arrays.asList(cmd.getOption("vehicle-modes").orElse("car,pt").split(","))
 				.stream().map(s -> s.trim()).collect(Collectors.toSet());
