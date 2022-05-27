@@ -11,6 +11,7 @@ import org.eqasim.ile_de_france.drt.rejections.RejectionConstraint;
 import org.eqasim.ile_de_france.drt.rejections.RejectionModule;
 import org.eqasim.ile_de_france.feeder.FeederModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.eqasim.ile_de_france.mode_choice.epsilon.EpsilonModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -47,14 +48,15 @@ import java.util.Set;
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder") //
+                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder", "use-epsilon") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
         IDFConfigurator configurator = new IDFConfigurator(false);
         String configPath = cmd.getOptionStrict("config-path");
         boolean useFeeder = cmd.hasOption("use-feeder") && Boolean.parseBoolean(cmd.getOptionStrict("use-feeder"));
-        Double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;
+        boolean useEpsilon = cmd.hasOption("use-epsilon") && Boolean.parseBoolean(cmd.getOptionStrict("use-epsilon"));
+        double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;
         Random random = new Random(1234);
         Config config = null;
         ConfigGroup[] configGroups = configurator.getConfigGroups();
@@ -202,7 +204,9 @@ public class RunDrtSimulation {
                 controller.addOverridingModule(new FeederModule(null, scenario.getTransitSchedule()));
             }
         }
-
+        if(useEpsilon) {
+            controller.addOverridingModule(new EpsilonModule(true));
+        }
         controller.run();
     }
 }
