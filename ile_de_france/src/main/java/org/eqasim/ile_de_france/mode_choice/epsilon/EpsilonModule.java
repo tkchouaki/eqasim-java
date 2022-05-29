@@ -18,19 +18,10 @@ import com.google.inject.name.Names;
 
 public class EpsilonModule extends AbstractEqasimExtension {
 
-	private final boolean useDrt;
 
 	@Provides
 	public GumbelEpsilonProvider provideGumbelEpsilonProvider(GlobalConfigGroup config) {
 		return new GumbelEpsilonProvider(config.getRandomSeed(), 1.0);
-	}
-
-	public EpsilonModule(boolean useDrt) {
-		this.useDrt = useDrt;
-	}
-
-	public EpsilonModule() {
-		this(false);
 	}
 
 	@Override
@@ -41,16 +32,10 @@ public class EpsilonModule extends AbstractEqasimExtension {
 		bind(IDFBikeUtilityEstimator.class);
 		bind(PtUtilityEstimator.class);
 		bind(WalkUtilityEstimator.class);
-		if(this.useDrt) {
-			bind(DrtUtilityEstimator.class);
-		}
 		bindUtilityEstimator("epsilon_car").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_car")));
 		bindUtilityEstimator("epsilon_pt").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_pt")));
 		bindUtilityEstimator("epsilon_bike").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_bike")));
 		bindUtilityEstimator("epsilon_walk").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_walk")));
-		if(useDrt) {
-			bindUtilityEstimator("epsilon_drt").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_drt")));
-		}
 	}
 
 	@Provides
@@ -75,11 +60,5 @@ public class EpsilonModule extends AbstractEqasimExtension {
 	@Named("epsilon_walk")
 	EpsilonAdapter provideEpsilonWalkEstimator(WalkUtilityEstimator delegate, EpsilonProvider epsilonProvider) {
 		return new EpsilonAdapter("walk", delegate, epsilonProvider);
-	}
-
-	@Provides
-	@Named("epsilon_drt")
-	EpsilonAdapter provideEpsilonDrtEstimator(DrtUtilityEstimator delegate, EpsilonProvider epsilonProvider) {
-		return new EpsilonAdapter("drt", delegate, epsilonProvider);
 	}
 }
