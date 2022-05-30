@@ -47,7 +47,7 @@ public class FeederRoutingModule implements RoutingModule {
 
 		for(TransitLine transitLine : schedule.getTransitLines().values()) {
 			for(TransitRoute transitRoute : transitLine.getRoutes().values()){
-				if(transitRoute.getTransportMode().equals("rail")) {
+				if(transitRoute.getTransportMode().equals("rail") || transitRoute.getTransportMode().equals("subway")) {
 					for(TransitRouteStop transitRouteStop : transitRoute.getStops()) {
 						TransitStopFacility transitStopFacility = transitRouteStop.getStopFacility();
 						if(!processedFacilities.contains(transitStopFacility.getId())) {
