@@ -6,6 +6,7 @@ import org.matsim.api.core.v01.population.*;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.router.RoutingModule;
 import org.matsim.core.utils.collections.QuadTree;
+import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.*;
@@ -53,7 +54,11 @@ public class FeederRoutingModule implements RoutingModule {
 						if(!processedFacilities.contains(transitStopFacility.getId())) {
 							processedFacilities.add(transitStopFacility.getId());
 							Facility interactionFacility = FacilitiesUtils.wrapLink(NetworkUtils.getNearestLink(drtNetwork, transitStopFacility.getCoord()));
-							if(!quadTree.put(transitStopFacility.getCoord().getX(), transitStopFacility.getCoord().getY(), interactionFacility)) {
+							try {
+								if (!quadTree.put(transitStopFacility.getCoord().getX(), transitStopFacility.getCoord().getY(), interactionFacility)) {
+									System.out.println("Cannot add this stop : " + transitStopFacility.getName());
+								}
+							} catch (IllegalArgumentException exception) {
 								System.out.println("Cannot add this stop because it's out of DRT's network : " + transitStopFacility.getName());
 							}
 						}
