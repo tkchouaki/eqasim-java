@@ -47,7 +47,7 @@ import java.util.Set;
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder", "use-epsilon") //
+                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder", "use-epsilon", "drt-variables-estimator") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
@@ -55,6 +55,15 @@ public class RunDrtSimulation {
         String configPath = cmd.getOptionStrict("config-path");
         boolean useFeeder = cmd.hasOption("use-feeder") && Boolean.parseBoolean(cmd.getOptionStrict("use-feeder"));
         boolean useEpsilon = cmd.hasOption("use-epsilon") && Boolean.parseBoolean(cmd.getOptionStrict("use-epsilon"));
+        IDFDrtModule.DrtVariablesEstimator drtVariablesEstimator = IDFDrtModule.DrtVariablesEstimator.Regular;
+        if(cmd.hasOption("drt-variables-estimator")) {
+            String optionValue = cmd.getOptionStrict("drt-variables-estimator");
+            if(optionValue.equals("experienceBased")) {
+                drtVariablesEstimator = IDFDrtModule.DrtVariablesEstimator.ExperienceBased;
+            } else if(!optionValue.equals("regular")) {
+                throw new IllegalStateException("The argument drt-variables-estimator accepts only two values: regular, experienceBased");
+            }
+        }
         double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;
         Random random = new Random(1234);
         Config config = null;
@@ -196,7 +205,7 @@ public class RunDrtSimulation {
         }
 
         { // Add overrides for Corsica + DRT
-            controller.addOverridingModule(new IDFDrtModule(cmd, useFeeder));
+            controller.addOverridingModule(new IDFDrtModule(cmd, drtVariablesEstimator, useFeeder));
             controller.addOverridingModule(new RejectionModule(Arrays.asList("drt")));
             controller.addOverridingModule(new DvrpAnalsisModule());
             if(useFeeder) {

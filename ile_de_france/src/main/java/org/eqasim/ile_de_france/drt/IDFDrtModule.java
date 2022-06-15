@@ -26,17 +26,23 @@ import java.io.File;
 import java.util.Map;
 
 public class IDFDrtModule extends AbstractEqasimExtension {
+
+	public enum DrtVariablesEstimator { Regular, ExperienceBased};
+
 	private final CommandLine commandLine;
 
 	private final boolean useFeeder;
 
+	private final DrtVariablesEstimator drtVariablesEstimator;
+
 	public IDFDrtModule(CommandLine commandLine ) {
-		this(commandLine, false);
+		this(commandLine, DrtVariablesEstimator.Regular, false);
 	}
 
-	public IDFDrtModule(CommandLine commandLine, boolean useFeeder) {
+	public IDFDrtModule(CommandLine commandLine, DrtVariablesEstimator drtVariablesEstimator, boolean useFeeder) {
 		this.commandLine = commandLine;
 		this.useFeeder = useFeeder;
+		this.drtVariablesEstimator = drtVariablesEstimator;
 	}
 
 	@Override
@@ -57,8 +63,14 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 				return new DrtVariablesExperienceEstimator(costModel);
 			}
 		};
-		bind(DrtPredictorInterface.class).to(DrtPredictor.class);
-		addEventHandlerBinding().toProvider(provider).asEagerSingleton();
+
+		if(drtVariablesEstimator.equals(DrtVariablesEstimator.ExperienceBased)) {
+			bind(DrtVariablesExperienceEstimator.class).toProvider(provider).asEagerSingleton();
+			bind(DrtPredictorInterface.class).to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
+			addEventHandlerBinding().to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
+		} else {
+			bind(DrtPredictorInterface.class).to(DrtPredictor.class);
+		}
 
 		if(useFeeder) {
 			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
