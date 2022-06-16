@@ -60,8 +60,11 @@ public class RunDrtSimulation {
             String optionValue = cmd.getOptionStrict("drt-variables-estimator");
             if(optionValue.equals("experienceBased")) {
                 drtVariablesEstimator = IDFDrtModule.DrtVariablesEstimator.ExperienceBased;
-            } else if(!optionValue.equals("regular")) {
-                throw new IllegalStateException("The argument drt-variables-estimator accepts only two values: regular, experienceBased");
+            } else if (optionValue.equals("experienceBasedWithRejectionPenalty")) {
+                drtVariablesEstimator = IDFDrtModule.DrtVariablesEstimator.ExperienceBasedWithRejectionPenalty;
+            }
+            else if(!optionValue.equals("regular")) {
+                throw new IllegalStateException("The argument drt-variables-estimator accepts only three values: regular, experienceBased, experienceBasedWithRejectionPenalty");
             }
         }
         double replaceProbability = cmd.hasOption("replace-probability") ? Double.parseDouble(cmd.getOptionStrict("replace-probability")) : 1;

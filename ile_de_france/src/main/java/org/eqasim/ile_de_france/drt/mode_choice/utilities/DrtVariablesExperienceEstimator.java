@@ -16,9 +16,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, PassengerRequestRejectedEventHandler, PassengerDroppedOffEventHandler, DrtRequestSubmittedEventHandler, PassengerPickedUpEventHandler {
-    private double requestsNumber=0;
-    private double rejectionsNumber=0;
+public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, PassengerDroppedOffEventHandler, DrtRequestSubmittedEventHandler, PassengerPickedUpEventHandler {
+
     private double droppedOffNumber=0;
     private double totalWaitingTime=0;
     private double totalTravelTime=0;
@@ -35,8 +34,6 @@ public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, P
 
     @Override
     public void reset(int iteration){
-        this.requestsNumber = 0;
-        this.rejectionsNumber = 0;
         this.droppedOffNumber = 0;
         this.totalTravelTime = 0;
         this.totalWaitingTime = 0;
@@ -53,28 +50,37 @@ public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, P
         // 2-Use the old predictor as a fallback
         // Remain as simple as possible - Start with fixed values & without distinguishing per zones
 
-        if(requestsNumber == 0) {
+        if(droppedOffNumber == 0) {
             return this.drtPredictor.predict(person, trip, elements);
         }
-        double rejectionProbability = rejectionsNumber/requestsNumber;
-        double waitingTimeExpectation = totalWaitingTime / droppedOffNumber;
-        double travelTimeExpectation = totalTravelTime / droppedOffNumber; // For this one, build estimations in a zone matrix
+        double waitingTimeExpectation = (totalWaitingTime / droppedOffNumber) / 60;
+        double travelTimeExpectation = (totalTravelTime / droppedOffNumber) / 60; // For this one, build estimations in a zone matrix
         double cost_MU = costModel.calculateCost_MU(person, trip, elements);
         double euclideanDistance_km = PredictorUtils.calculateEuclideanDistance_km(trip);
-        return new DrtVariables(travelTimeExpectation / rejectionProbability, cost_MU, euclideanDistance_km, waitingTimeExpectation / rejectionProbability, 0);
+        DrtVariables result = new DrtVariables(travelTimeExpectation, cost_MU, euclideanDistance_km, waitingTimeExpectation, 0);
+        return result;
     }
 
-    @Override
-    public void handleEvent(PassengerRequestRejectedEvent passengerRequestRejectedEvent) {
-        this.requestsNumber++;
-        this.rejectionsNumber++;
+    protected double getExpectedWaitingTime() {
+        return (totalWaitingTime / droppedOffNumber) / 60;
+    }
+
+    protected double getExpectedTravelTime() {
+        return (totalTravelTime / droppedOffNumber) / 60;
+    }
+
+    protected DrtVariables delegate(Person person, DiscreteModeChoiceTrip trip, List<? extends PlanElement> elements) {
+        return this.drtPredictor.predict(person, trip, elements);
+    }
+
+    protected CostModel getCostModel() {
+        return this.costModel;
     }
 
     @Override
     public void handleEvent(PassengerDroppedOffEvent passengerDroppedOffEvent) {
-        this.requestsNumber++;
         this.droppedOffNumber++;
-        this.totalTravelTime += this.lastPickedUpTime.get(passengerDroppedOffEvent.getPersonId());
+        this.totalTravelTime += passengerDroppedOffEvent.getTime() - this.lastPickedUpTime.get(passengerDroppedOffEvent.getPersonId());
     }
 
     @Override

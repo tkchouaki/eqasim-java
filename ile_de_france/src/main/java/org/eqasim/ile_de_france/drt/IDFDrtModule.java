@@ -27,7 +27,7 @@ import java.util.Map;
 
 public class IDFDrtModule extends AbstractEqasimExtension {
 
-	public enum DrtVariablesEstimator { Regular, ExperienceBased};
+	public enum DrtVariablesEstimator { Regular, ExperienceBased, ExperienceBasedWithRejectionPenalty};
 
 	private final CommandLine commandLine;
 
@@ -63,15 +63,32 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 				return new DrtVariablesExperienceEstimator(costModel);
 			}
 		};
+		Provider<DrtVariablesExperienceBasedWithPenaltyRejectionEstimator> penaltyRejectionEstimatorProvider = new Provider<DrtVariablesExperienceBasedWithPenaltyRejectionEstimator>() {
+			@Inject
+			@Named("drt")
+			CostModel costModel;
 
-		if(drtVariablesEstimator.equals(DrtVariablesEstimator.ExperienceBased)) {
-			bind(DrtVariablesExperienceEstimator.class).toProvider(provider).asEagerSingleton();
-			bind(DrtPredictorInterface.class).to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
-			addEventHandlerBinding().to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
-		} else {
-			bind(DrtPredictorInterface.class).to(DrtPredictor.class);
+			@Override
+			public DrtVariablesExperienceBasedWithPenaltyRejectionEstimator get() {
+				return new DrtVariablesExperienceBasedWithPenaltyRejectionEstimator(costModel);
+			}
+		};
+
+		switch (drtVariablesEstimator) {
+			case Regular:
+				bind(DrtPredictorInterface.class).to(DrtPredictor.class);
+				break;
+			case ExperienceBased:
+				bind(DrtVariablesExperienceEstimator.class).toProvider(provider).asEagerSingleton();
+				bind(DrtPredictorInterface.class).to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
+				addEventHandlerBinding().to(DrtVariablesExperienceEstimator.class).asEagerSingleton();
+				break;
+
+			case ExperienceBasedWithRejectionPenalty:
+				bind(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).toProvider(penaltyRejectionEstimatorProvider).asEagerSingleton();
+				bind(DrtPredictorInterface.class).to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
+				addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 		}
-
 		if(useFeeder) {
 			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
 			bindTripConstraintFactory(FeederConstraint.NAME).to(FeederConstraint.Factory.class);
