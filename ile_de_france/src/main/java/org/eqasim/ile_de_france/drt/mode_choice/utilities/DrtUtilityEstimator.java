@@ -4,20 +4,32 @@ import com.google.inject.Inject;
 import org.eqasim.core.simulation.mode_choice.utilities.UtilityEstimator;
 import org.eqasim.core.simulation.mode_choice.utilities.estimators.EstimatorUtils;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtModeParameters;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.contrib.drt.passenger.events.DrtRequestSubmittedEvent;
+import org.matsim.contrib.drt.passenger.events.DrtRequestSubmittedEventHandler;
+import org.matsim.contrib.dvrp.passenger.*;
 import org.matsim.contribs.discrete_mode_choice.model.DiscreteModeChoiceTrip;
+import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.core.controler.MatsimServices;
 
+import java.io.*;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class DrtUtilityEstimator implements UtilityEstimator {
 	private final IDFDrtModeParameters parameters;
 	private final DrtPredictorInterface predictor;
 
+	private final EventsManager eventsManager;
+
 	@Inject
-	public DrtUtilityEstimator(IDFDrtModeParameters parameters, DrtPredictorInterface predictor) {
+	public DrtUtilityEstimator(IDFDrtModeParameters parameters, DrtPredictorInterface predictor, EventsManager eventsManager) {
 		this.parameters = parameters;
 		this.predictor = predictor;
+		this.eventsManager = eventsManager;
 	}
 
 	protected double estimateConstantUtility() {
@@ -52,6 +64,8 @@ public class DrtUtilityEstimator implements UtilityEstimator {
 		utility += estimateWaitingTimeUtility(variables);
 		utility += estimateMonetaryCostUtility(variables);
 		utility += estimateAccessEgressTimeUtility(variables);
+
+		this.eventsManager.processEvent(new DrtVariablesComputedEvent(0, person, trip, elements, variables));
 
 		return utility;
 	}

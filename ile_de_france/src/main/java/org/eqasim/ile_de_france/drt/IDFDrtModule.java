@@ -21,6 +21,7 @@ import org.eqasim.ile_de_france.feeder.FeederUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFModeParameters;
 import org.matsim.core.config.CommandLine;
+import org.matsim.core.controler.MatsimServices;
 
 import java.io.File;
 import java.util.Map;
@@ -89,6 +90,8 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 				bind(DrtPredictorInterface.class).to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 				addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 		}
+		addEventHandlerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();
+
 		if(useFeeder) {
 			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
 			bindTripConstraintFactory(FeederConstraint.NAME).to(FeederConstraint.Factory.class);
