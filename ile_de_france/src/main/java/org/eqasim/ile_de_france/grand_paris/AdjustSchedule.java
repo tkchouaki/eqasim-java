@@ -38,6 +38,7 @@ public class AdjustSchedule {
     private static final String TRAVEL_TIMES_CSV_TRAVEL_TIME_COLUMN = "travel_time";
     private static final String FREQUENCIES_CSV_LINE_ID_COLUMN = "line_id";
     private static final String FREQUENCIES_CSV_FREQUENCY_COLUMN = "frequency";
+    private static final String FREQUENCIES_CSV_MODE_COLUMN = "mode";
     private static final Double MAX_DEPARTURE_TIME = 24.0 * 3600;
     private static final String DEFAULT_SPEED_KM_H = "40";
 
@@ -184,7 +185,8 @@ public class AdjustSchedule {
             reader.close();
         }
 
-        Map<String, Double> frequencies = new HashMap<>();
+        Map<String, Integer> frequencies = new HashMap<>();
+        Map<String, String> modes = new HashMap<>();
 
 
         { // Set up departures
@@ -202,8 +204,10 @@ public class AdjustSchedule {
                     header = row;
                 } else {
                     String transitLine = row.get(header.indexOf(FREQUENCIES_CSV_LINE_ID_COLUMN));
-                    double frequency = Double.parseDouble(row.get(header.indexOf(FREQUENCIES_CSV_FREQUENCY_COLUMN)));
+                    int frequency = 3600 / Integer.parseInt(row.get(header.indexOf(FREQUENCIES_CSV_FREQUENCY_COLUMN)));
+                    String mode = row.get(header.indexOf(FREQUENCIES_CSV_MODE_COLUMN));
                     frequencies.put(transitLine, frequency);
+                    modes.put(transitLine, mode);
                 }
             }
 
@@ -294,10 +298,11 @@ public class AdjustSchedule {
 
                 TransitRoute forwardRoute = schedule.getFactory().createTransitRoute(
                         Id.create("GPE:" + line + ":forward", TransitRoute.class), forwardNetworkRoute, forwardStops,
-                        "subway");
+                        modes.get(line));
                 TransitRoute backwardRoute = schedule.getFactory().createTransitRoute(
                         Id.create("GPE:" + line + ":backward", TransitRoute.class), backwardNetworkRoute, backwardStops,
-                        "subway");
+                        modes.get(line));
+                forwardRoute.setTransportMode(modes.get(line));
                 transitLine.addRoute(forwardRoute);
                 transitLine.addRoute(backwardRoute);
 
