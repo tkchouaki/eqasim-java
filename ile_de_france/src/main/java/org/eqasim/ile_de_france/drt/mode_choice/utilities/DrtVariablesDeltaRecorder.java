@@ -2,6 +2,7 @@ package org.eqasim.ile_de_france.drt.mode_choice.utilities;
 
 import com.google.inject.Inject;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.IdMap;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.contrib.drt.passenger.events.DrtRequestSubmittedEvent;
 import org.matsim.contrib.drt.passenger.events.DrtRequestSubmittedEventHandler;
@@ -9,22 +10,32 @@ import org.matsim.contrib.dvrp.passenger.PassengerDroppedOffEvent;
 import org.matsim.contrib.dvrp.passenger.PassengerDroppedOffEventHandler;
 import org.matsim.contrib.dvrp.passenger.PassengerPickedUpEvent;
 import org.matsim.contrib.dvrp.passenger.PassengerPickedUpEventHandler;
+import org.matsim.contribs.discrete_mode_choice.model.DiscreteModeChoiceTrip;
+import org.matsim.contribs.discrete_mode_choice.model.ModeChoicePerformedEvent;
+import org.matsim.contribs.discrete_mode_choice.model.ModeChoicePerformedEventHandler;
+import org.matsim.contribs.discrete_mode_choice.model.trip_based.candidates.DefaultRoutedTripCandidate;
+import org.matsim.contribs.discrete_mode_choice.model.trip_based.candidates.TripCandidate;
+import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.MatsimServices;
+import org.matsim.core.controler.events.IterationEndsEvent;
+import org.matsim.core.controler.events.IterationStartsEvent;
+import org.matsim.core.controler.listener.IterationEndsListener;
+import org.matsim.core.controler.listener.IterationStartsListener;
 
-import java.io.BufferedWriter;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class DrtVariablesDeltaRecorder implements PassengerDroppedOffEventHandler, DrtRequestSubmittedEventHandler, PassengerPickedUpEventHandler, DrtVariablesComputedEventHandlerInterface {
+public class DrtVariablesDeltaRecorder implements PassengerDroppedOffEventHandler, DrtRequestSubmittedEventHandler, PassengerPickedUpEventHandler, ModeChoicePerformedEventHandler, IterationEndsListener, IterationStartsListener {
 
     private final Map<Id<Person>, Double> lastDrtRequestSubmissionTime = new HashMap<>();
+    //TODO Replace Maps by IdMaps
+    private final IdMap<Person, Double> myIdMap = new IdMap<>(Person.class);
 
     private final Map<Id<Person>, Double> lastPickedUpTime = new HashMap<>();
 
-    private final Map<Id<Person>, Map<Integer, DrtVariables>> cache = new HashMap<>();
+    private final Map<Id<Person>, List<DrtVariablesEstimationRecord>> cache = new HashMap<>();
 
     private final Map<Id<Person>, Integer> currentIndices = new HashMap<>();
 
@@ -34,9 +45,17 @@ public class DrtVariablesDeltaRecorder implements PassengerDroppedOffEventHandle
 
     private boolean cacheFilled = false;
 
+    private int drtVariablesComputations = 0;
+    private int modeChoices = 0;
+
+    private final DrtPredictorInterface drtPredictor;
+    private final EventsManager eventsManager;
+
     @Inject
-    public DrtVariablesDeltaRecorder(MatsimServices matsimServices) {
+    public DrtVariablesDeltaRecorder(MatsimServices matsimServices, DrtPredictorInterface drtPredictor, EventsManager eventsManager) {
         this.matsimServices = matsimServices;
+        this.drtPredictor = drtPredictor;
+        this.eventsManager = eventsManager;
     }
 
     private void initObservationEntry(Id<Person> personId) {
@@ -45,61 +64,48 @@ public class DrtVariablesDeltaRecorder implements PassengerDroppedOffEventHandle
         }
     }
 
-    private DrtVariables initNextTripEstimation(Id<Person> personId) {
-        if(!this.currentIndices.containsKey(personId)) {
-            this.currentIndices.put(personId, -1);
-        }
-        int i=this.currentIndices.get(personId)+1;
-        for(;!this.cache.get(personId).containsKey(i);i++);
-        DrtVariables drtVariables = new DrtVariables(-1, -1, -1, -1, -1);
-        this.currentIndices.put(personId, i);
-        this.observed.get(personId).put(i, drtVariables);
-        return drtVariables;
-    }
-
     private DrtVariables getCurrentEstimation(Id<Person> personId) {
         return this.observed.get(personId).get(this.currentIndices.get(personId));
     }
 
-    private void updateCurrentEstimation(Id<Person> personId, DrtVariables drtVariables) {
-        this.observed.get(personId).put(this.currentIndices.get(personId), drtVariables);
-    }
-
     @Override
     public void handleEvent(DrtRequestSubmittedEvent drtRequestSubmittedEvent) {
-        this.lastDrtRequestSubmissionTime.put(drtRequestSubmittedEvent.getPersonId(), drtRequestSubmittedEvent.getTime());
+        /*this.lastDrtRequestSubmissionTime.put(drtRequestSubmittedEvent.getPersonId(), drtRequestSubmittedEvent.getTime());
         if(this.cacheFilled) {
             this.initObservationEntry(drtRequestSubmittedEvent.getPersonId());
             this.initNextTripEstimation(drtRequestSubmittedEvent.getPersonId());
-        }
+        }*/
     }
 
     @Override
     public void handleEvent(PassengerPickedUpEvent passengerPickedUpEvent) {
-        if(!this.cacheFilled) {
+        /*if(!this.cacheFilled) {
             return;
         }
         DrtVariables drtVariables = this.getCurrentEstimation(passengerPickedUpEvent.getPersonId());
         double waitingTime = passengerPickedUpEvent.getTime() - this.lastDrtRequestSubmissionTime.get(passengerPickedUpEvent.getPersonId());
         DrtVariables newVariables = new DrtVariables(drtVariables.travelTime_min, drtVariables.cost_MU, drtVariables.euclideanDistance_km, waitingTime, drtVariables.accessEgressTime_min);
         this.updateCurrentEstimation(passengerPickedUpEvent.getPersonId(), newVariables);
-        this.lastPickedUpTime.put(passengerPickedUpEvent.getPersonId(), passengerPickedUpEvent.getTime());
+        this.lastPickedUpTime.put(passengerPickedUpEvent.getPersonId(), passengerPickedUpEvent.getTime());*/
     }
 
     @Override
     public void handleEvent(PassengerDroppedOffEvent passengerDroppedOffEvent) {
-        if(!this.cacheFilled) {
+        /*if(!this.cacheFilled) {
             return;
         }
         double travelTime = passengerDroppedOffEvent.getTime() - this.lastPickedUpTime.get(passengerDroppedOffEvent.getPersonId());
         DrtVariables drtVariables = this.getCurrentEstimation(passengerDroppedOffEvent.getPersonId());
         DrtVariables newVariables = new DrtVariables(travelTime, drtVariables.cost_MU, drtVariables.euclideanDistance_km, drtVariables.waitingTime_min, drtVariables.accessEgressTime_min);
-        this.updateCurrentEstimation(passengerDroppedOffEvent.getPersonId(), newVariables);
+        this.updateCurrentEstimation(passengerDroppedOffEvent.getPersonId(), newVariables);*/
     }
 
 
     @Override
     public void reset(int iteration) {
+        this.cache.clear();
+
+        /*
         if(!this.cacheFilled) {
             return;
         }
@@ -140,20 +146,57 @@ public class DrtVariablesDeltaRecorder implements PassengerDroppedOffEventHandle
         }
         this.lastDrtRequestSubmissionTime.clear();
         this.lastPickedUpTime.clear();
-        this.observed.clear();
+        this.observed.clear();*/
     }
 
 
     @Override
-    public void handleEvent(DrtVariablesComputedEvent event) {
-        if(!this.cache.containsKey(event.getPerson().getId())) {
-            this.cache.put(event.getPerson().getId(), new HashMap<>());
+    public void handleEvent(ModeChoicePerformedEvent event) {
+        List<TripCandidate> result = event.getModeChoiceResult();
+        List<DiscreteModeChoiceTrip> trips = event.getTrips();
+        assert result.size() == trips.size();
+        for(int i=0; i<trips.size(); i++) {
+            TripCandidate tripCandidate = result.get(i);
+            if(tripCandidate.getMode().equals("drt")) {
+                assert tripCandidate instanceof DefaultRoutedTripCandidate;
+                DefaultRoutedTripCandidate routedTripCandidate = (DefaultRoutedTripCandidate) tripCandidate;
+                DrtVariables drtVariables = this.drtPredictor.predict(event.getPerson(), trips.get(i), routedTripCandidate.getRoutedPlanElements());
+                if(!this.cache.containsKey(event.getPerson().getId())) {
+                    this.cache.put(event.getPerson().getId(), new ArrayList<>());
+                }
+                this.cache.get(event.getPerson().getId()).add(new DrtVariablesEstimationRecord(routedTripCandidate, drtVariables));
+            }
         }
-        if(this.cache.get(event.getPerson().getId()).containsKey(event.getTrip().getIndex())) {
-            // throw new IllegalStateException("Trip index " + event.getTrip().getIndex() + " for person " + event.getPerson().getId().toString() + " evaluated more than once");
+    }
+
+    @Override
+    public void notifyIterationEnds(IterationEndsEvent event) {
+        this.eventsManager.removeHandler(this);
+        this.cache.clear();
+    }
+
+    @Override
+    public void notifyIterationStarts(IterationStartsEvent event) {
+        this.eventsManager.addHandler(this);
+    }
+
+
+    public static class DrtVariablesEstimationRecord {
+
+        private final DefaultRoutedTripCandidate routedTripCandidate;
+        private final DrtVariables drtVariables;
+
+        public DrtVariablesEstimationRecord(DefaultRoutedTripCandidate routedTripCandidate, DrtVariables drtVariables) {
+            this.routedTripCandidate = routedTripCandidate;
+            this.drtVariables = drtVariables;
         }
 
-        this.cache.get(event.getPerson().getId()).put(event.getTrip().getIndex(), event.getDrtVariables());
-        this.cacheFilled = true;
+        public DefaultRoutedTripCandidate getRoutedTripCandidate() {
+            return this.routedTripCandidate;
+        }
+
+        public DrtVariables getDrtVariables() {
+            return this.drtVariables;
+        }
     }
 }

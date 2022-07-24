@@ -39,5 +39,9 @@ public class PublicTransportTripItem {
 
 		this.lineName = lineName;
 		this.routeMode = routeMode;
+
+		if(this.lineName == null)  {
+			this.lineName = this.transitLineId.toString();
+		}
 	}
 }

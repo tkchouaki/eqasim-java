@@ -65,8 +65,12 @@ public class DrtUtilityEstimator implements UtilityEstimator {
 		utility += estimateMonetaryCostUtility(variables);
 		utility += estimateAccessEgressTimeUtility(variables);
 
+		//TODO this is fired way too often
+		//TODO Because every chain of activity is evaluated
+		//TODO Should fire it only for the one that is kept in the replanning
 		this.eventsManager.processEvent(new DrtVariablesComputedEvent(0, person, trip, elements, variables));
-
+		//TODO other idea, fire the event in the utility selector (be careful because we often switch between multinomial logit and maximum selector
+		//TODO an option could be to create a selector that just fires events and delegates to implementations
 		return utility;
 	}
 }

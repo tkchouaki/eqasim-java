@@ -25,7 +25,7 @@ public class DrtVariablesExperienceBasedWithPenaltyRejectionEstimator extends Dr
         if(requestsNumber == 0) {
             return this.delegate(person, trip, elements);
         }
-        double rejectionProbability = rejectionsNumber/requestsNumber;
+        double rejectionProbability = this.getRejectionProbability();
         double waitingTimeExpectation = this.getExpectedWaitingTime();
         double travelTimeExpectation = this.getExpectedTravelTime();
         double cost_MU = this.getCostModel().calculateCost_MU(person, trip, elements);
@@ -50,5 +50,9 @@ public class DrtVariablesExperienceBasedWithPenaltyRejectionEstimator extends Dr
     public void handleEvent(PassengerDroppedOffEvent passengerDroppedOffEvent) {
         this.requestsNumber++;
         super.handleEvent(passengerDroppedOffEvent);
+    }
+
+    public double getRejectionProbability() {
+        return this.rejectionsNumber / this.requestsNumber;
     }
 }

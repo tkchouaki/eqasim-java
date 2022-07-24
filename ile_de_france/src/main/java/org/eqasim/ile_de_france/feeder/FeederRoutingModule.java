@@ -7,6 +7,7 @@ import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.router.RoutingModule;
 import org.matsim.core.utils.collections.QuadTree;
 import org.matsim.core.utils.geometry.CoordUtils;
+import org.matsim.facilities.ActivityFacilityImpl;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.*;
@@ -75,7 +76,10 @@ public class FeederRoutingModule implements RoutingModule {
 		Facility egressFacility = this.quadTree.getClosest(toFacility.getCoord().getX(), toFacility.getCoord().getY());
 
 		List<PlanElement> intermodalRoute = new LinkedList<>();
-		List<? extends PlanElement> drtRoute = drtRoutingModule.calcRoute(fromFacility, accessFacility, departureTime, person);
+		List<? extends PlanElement> drtRoute = null;
+		if(! (fromFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) fromFacility).getId().toString().startsWith("outside")) {
+			drtRoute = drtRoutingModule.calcRoute(fromFacility, accessFacility, departureTime, person);
+		}
 		double accessTime = departureTime;
 		if(drtRoute == null) {
 			accessFacility = fromFacility;
@@ -105,7 +109,14 @@ public class FeederRoutingModule implements RoutingModule {
 			}
 		}
 
-		drtRoute = drtRoutingModule.calcRoute(egressFacility, toFacility, egressTime, person);
+		if(!(egressFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) egressFacility).getId().toString().startsWith("outside"))
+		{
+			drtRoute = drtRoutingModule.calcRoute(egressFacility, toFacility, egressTime, person);
+		}
+		else
+		{
+			drtRoute = null;
+		}
 
 		if(drtRoute == null) {
 			intermodalRoute.addAll(transitRoutingModule.calcRoute(accessFacility, toFacility, accessTime, person));

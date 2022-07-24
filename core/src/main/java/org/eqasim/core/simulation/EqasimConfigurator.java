@@ -14,6 +14,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.contribs.discrete_mode_choice.modules.DiscreteModeChoiceModule;
+import org.matsim.contribs.discrete_mode_choice.modules.EventFiringDiscreteModeChoiceModule;
 import org.matsim.contribs.discrete_mode_choice.modules.config.DiscreteModeChoiceConfigGroup;
 import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.controler.AbstractModule;
@@ -40,7 +41,7 @@ public class EqasimConfigurator {
 		modules.addAll(Arrays.asList( //
 				new SwissRailRaptorModule(), //
 				new EqasimTransitModule(), //
-				new DiscreteModeChoiceModule(), //
+				new EventFiringDiscreteModeChoiceModule(), //
 				new EqasimComponentsModule() //
 		));
 

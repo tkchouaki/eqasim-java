@@ -90,7 +90,8 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 				bind(DrtPredictorInterface.class).to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 				addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 		}
-		addEventHandlerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();
+		//addEventHandlerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();
+		addControlerListenerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();
 
 		if(useFeeder) {
 			bindUtilityEstimator("feeder").to(FeederUtilityEstimator.class);
