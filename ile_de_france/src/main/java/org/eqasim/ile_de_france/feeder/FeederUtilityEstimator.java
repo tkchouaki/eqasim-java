@@ -21,7 +21,7 @@ public class FeederUtilityEstimator implements UtilityEstimator {
 	private final DrtUtilityEstimator drtEstimator;
 	private final PtUtilityEstimator ptEstimator;
 	private final IDFDrtModeParameters parameters;
-	private static final boolean FORCE_FEEDER = true;
+	private static final boolean FORCE_FEEDER = false;
 
 	@Inject
 	public FeederUtilityEstimator(DrtUtilityEstimator drtEstimator, PtUtilityEstimator ptEstimator,
