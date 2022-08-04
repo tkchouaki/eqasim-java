@@ -11,6 +11,7 @@ import org.eqasim.ile_de_france.drt.mode_choice.IDFDrtModeAvailability;
 import org.eqasim.ile_de_france.drt.rejections.RejectionConstraint;
 import org.eqasim.ile_de_france.drt.rejections.RejectionModule;
 import org.eqasim.ile_de_france.feeder.FeederModule;
+import org.eqasim.ile_de_france.feeder.analysis.FeederAnalysisModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
@@ -213,6 +214,7 @@ public class RunDrtSimulation {
             controller.addOverridingModule(new DvrpAnalsisModule());
             if(useFeeder) {
                 controller.addOverridingModule(new FeederModule(null, scenario.getTransitSchedule()));
+                controller.addOverridingModule(new FeederAnalysisModule());
             }
         }
         if(useEpsilon) {
