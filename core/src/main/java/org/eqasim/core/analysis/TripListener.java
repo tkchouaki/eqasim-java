@@ -37,7 +37,6 @@ import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
-import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.matsim.vehicles.Vehicle;
 
 public class TripListener implements ActivityStartEventHandler, ActivityEndEventHandler, PersonDepartureEventHandler,
@@ -100,7 +99,7 @@ public class TripListener implements ActivityStartEventHandler, ActivityEndEvent
 				TripListenerItem tripListenerItem = new TripListenerItem(event.getPersonId(), personTripIndex,
 						network.getLinks().get(event.getLinkId()).getCoord(), event.getTime(), event.getActType());
 				tripListenerItem.originScope = this.scenarioExtent == null ? "inside" : this.scenarioExtent.isInside(tripListenerItem.origin) ? "inside": "outside";
-				if(tripListenerItem.origin.equals("inside")) {
+				if(tripListenerItem.originScope.equals("inside")) {
 					tripListenerItem.tripScope = "inside";
 				}
 				ongoing.put(event.getPersonId(), tripListenerItem);
