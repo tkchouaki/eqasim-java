@@ -59,6 +59,14 @@ public class FeederUtilityEstimator implements UtilityEstimator {
 				}
 			}
 		}
+		if(currentTrip.size() > 0) {
+			if (lastMode.equals(TransportMode.pt)) {
+				totalUtility += ptEstimator.estimateUtility(person, trip, currentTrip);
+			} else if (lastMode.equals(TransportMode.drt)) {
+				totalUtility += drtEstimator.estimateUtility(person, trip, currentTrip);
+			}
+			currentTrip.clear();
+		}
 		return totalUtility;
 	}
 }

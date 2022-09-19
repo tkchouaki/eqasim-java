@@ -13,6 +13,9 @@ import org.eqasim.ile_de_france.drt.rejections.RejectionModule;
 import org.eqasim.ile_de_france.feeder.FeederModule;
 import org.eqasim.ile_de_france.feeder.analysis.FeederAnalysisModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.matsim.alonso_mora.AlonsoMoraConfigGroup;
+import org.matsim.alonso_mora.AlonsoMoraConfigurator;
+import org.matsim.alonso_mora.MultiModeAlonsoMoraConfigGroup;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -48,7 +51,7 @@ import java.util.Set;
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
         CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder", "use-epsilon", "drt-variables-estimator") //
+                .requireOptions("config-path").allowOptions("drt-vehicles-path", "replace-trips-mode", "replace-probability", "use-feeder", "use-epsilon", "drt-variables-estimator", "drtRejectionsPenaltyProvider", "use-am") //
                 .allowPrefixes("mode-choice-parameter", "cost-parameter") //
                 .build();
 
@@ -56,6 +59,7 @@ public class RunDrtSimulation {
         String configPath = cmd.getOptionStrict("config-path");
         boolean useFeeder = cmd.hasOption("use-feeder") && Boolean.parseBoolean(cmd.getOptionStrict("use-feeder"));
         boolean useEpsilon = cmd.hasOption("use-epsilon") && Boolean.parseBoolean(cmd.getOptionStrict("use-epsilon"));
+        boolean useAlonsoMora = cmd.hasOption("use-am") && Boolean.parseBoolean(cmd.getOptionStrict("use-am"));
         IDFDrtModule.DrtVariablesEstimator drtVariablesEstimator = IDFDrtModule.DrtVariablesEstimator.Regular;
         if(cmd.hasOption("drt-variables-estimator")) {
             String optionValue = cmd.getOptionStrict("drt-variables-estimator");
@@ -87,6 +91,8 @@ public class RunDrtSimulation {
             DvrpConfigGroup dvrpConfig = new DvrpConfigGroup();
             config.addModule(dvrpConfig);
         }
+
+
         cmd.applyConfiguration(config);
 
         MultiModeDrtConfigGroup multiModeDrtConfig = null;
@@ -217,6 +223,43 @@ public class RunDrtSimulation {
                 controller.addOverridingModule(new FeederAnalysisModule());
             }
         }
+
+        if(useAlonsoMora) {
+            config.qsim().setInsertingWaitingVehiclesBeforeDrivingVehicles(true);
+            MultiModeAlonsoMoraConfigGroup multiModeConfig = new MultiModeAlonsoMoraConfigGroup();
+            config.addModule(multiModeConfig);
+
+            AlonsoMoraConfigGroup amConfig = new AlonsoMoraConfigGroup();
+
+            multiModeConfig.addParameterSet(amConfig);
+
+            amConfig.setMaximumQueueTime(0.0);
+
+            amConfig.setAssignmentInterval(30);
+            amConfig.setRelocationInterval(0);
+
+            amConfig.getCongestionMitigationParameters().setAllowBareReassignment(false);
+            amConfig.getCongestionMitigationParameters().setAllowPickupViolations(true);
+            amConfig.getCongestionMitigationParameters().setAllowPickupsWithDropoffViolations(true);
+            amConfig.getCongestionMitigationParameters().setPreserveVehicleAssignments(true);
+
+            amConfig.setRerouteDuringScheduling(false);
+
+            amConfig.setCheckDeterminsticTravelTimes(true);
+
+            amConfig.setSequenceGeneratorType(AlonsoMoraConfigGroup.SequenceGeneratorType.Combined);
+
+            AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters assignmentParameters = new AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters();
+            amConfig.addParameterSet(assignmentParameters);
+
+            AlonsoMoraConfigGroup.GlpkMpsRelocationParameters relocationParameters = new AlonsoMoraConfigGroup.GlpkMpsRelocationParameters();
+            amConfig.addParameterSet(relocationParameters);
+
+            AlonsoMoraConfigGroup.MatrixEstimatorParameters estimator = new AlonsoMoraConfigGroup.MatrixEstimatorParameters();
+            amConfig.addParameterSet(estimator);
+            AlonsoMoraConfigurator.configure(controller, amConfig.getMode());
+        }
+
         if(useEpsilon) {
             controller.addOverridingModule(new DrtEpsilonModule());
         }

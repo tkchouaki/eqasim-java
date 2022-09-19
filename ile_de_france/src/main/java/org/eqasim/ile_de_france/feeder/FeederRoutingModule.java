@@ -1,8 +1,11 @@
 package org.eqasim.ile_de_france.feeder;
 
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.*;
+import org.matsim.contrib.drt.routing.DrtRoute;
+import org.matsim.contrib.dvrp.router.DvrpRoutingModule;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.router.RoutingModule;
 import org.matsim.core.utils.collections.QuadTree;
@@ -34,6 +37,8 @@ public class FeederRoutingModule implements RoutingModule {
 	private final TransitSchedule schedule;
 
 	private static final boolean FORCE_EGRESS = true;
+
+	private static final Logger logger = Logger.getLogger(FeederRoutingModule.class);
 
 	private QuadTree<Facility> quadTree;
 
@@ -80,6 +85,20 @@ public class FeederRoutingModule implements RoutingModule {
 		if(! (fromFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) fromFacility).getId().toString().startsWith("outside")) {
 			drtRoute = drtRoutingModule.calcRoute(fromFacility, accessFacility, departureTime, person);
 		}
+		if(drtRoute != null) {
+			for(PlanElement planElement: drtRoute) {
+				if(planElement instanceof Leg){
+					Leg leg = (Leg) planElement;
+					if(leg.getMode().equals("drt")){
+						DrtRoute route = (DrtRoute) leg.getRoute();
+						if(route.getDirectRideTime() >= route.getMaxWaitTime()) {
+							logger.info("FEEDER ACCESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
+							//drtRoute = null;
+						}
+					}
+				}
+			}
+		}
 		double accessTime = departureTime;
 		if(drtRoute == null) {
 			accessFacility = fromFacility;
@@ -112,6 +131,20 @@ public class FeederRoutingModule implements RoutingModule {
 		if(!(egressFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) egressFacility).getId().toString().startsWith("outside"))
 		{
 			drtRoute = drtRoutingModule.calcRoute(egressFacility, toFacility, egressTime, person);
+			if(drtRoute != null) {
+				for(PlanElement planElement: drtRoute) {
+					if(planElement instanceof Leg){
+						Leg leg = (Leg) planElement;
+						if(leg.getMode().equals("drt")){
+							DrtRoute route = (DrtRoute) leg.getRoute();
+							if(route.getDirectRideTime() >= route.getMaxWaitTime()) {
+								logger.info("FEEDER EGRESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
+								//drtRoute = null;
+							}
+						}
+					}
+				}
+			}
 		}
 		else
 		{

@@ -19,6 +19,8 @@
 	</repositories>
 
 	<dependencies>
+
+
 		<dependency>
 			<groupId>org.eqasim</groupId>
 			<artifactId>core</artifactId>
@@ -41,6 +43,12 @@
 			<groupId>com.github.MATSimToCBA</groupId>
 			<artifactId>matsim-cba</artifactId>
 			<version>-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.matsim-org</groupId>
+			<artifactId>alonso-mora</artifactId>
+			<version>-238cf5e9df-1</version>
 		</dependency>
 
 	</dependencies>

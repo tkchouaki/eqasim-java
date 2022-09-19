@@ -16,10 +16,17 @@ import org.eqasim.ile_de_france.drt.mode_choice.cost.DrtCostModel;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtCostParameters;
 import org.eqasim.ile_de_france.drt.mode_choice.parameters.IDFDrtModeParameters;
 import org.eqasim.ile_de_france.drt.mode_choice.utilities.*;
+import org.eqasim.ile_de_france.drt.mode_choice.utilities.drt_rejection_penalty.DrtRejectionPenaltyProvider;
+import org.eqasim.ile_de_france.drt.mode_choice.utilities.drt_rejection_penalty.DrtRejectionsLinearPenaltyProvider;
+import org.eqasim.ile_de_france.drt.mode_choice.utilities.drt_rejection_penalty.NoRejectionsPenalty;
 import org.eqasim.ile_de_france.feeder.FeederConstraint;
 import org.eqasim.ile_de_france.feeder.FeederUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFModeParameters;
+import org.matsim.contrib.dvrp.fleet.Fleet;
+import org.matsim.contrib.dvrp.fleet.FleetSpecification;
+import org.matsim.contrib.dvrp.run.DvrpMode;
+import org.matsim.contrib.dvrp.run.Modal;
 import org.matsim.core.config.CommandLine;
 import org.matsim.core.controler.MatsimServices;
 
@@ -29,6 +36,9 @@ import java.util.Map;
 public class IDFDrtModule extends AbstractEqasimExtension {
 
 	public enum DrtVariablesEstimator { Regular, ExperienceBased, ExperienceBasedWithRejectionPenalty};
+	public enum DrtRejectionsPenaltyProviderType {None, Linear};
+
+	private DrtRejectionsPenaltyProviderType drtRejectionsPenaltyProviderType = DrtRejectionsPenaltyProviderType.None;
 
 	private final CommandLine commandLine;
 
@@ -36,21 +46,24 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 
 	private final DrtVariablesEstimator drtVariablesEstimator;
 
-	public IDFDrtModule(CommandLine commandLine ) {
+
+	public IDFDrtModule(CommandLine commandLine ) throws CommandLine.ConfigurationException {
 		this(commandLine, DrtVariablesEstimator.Regular, false);
 	}
 
-	public IDFDrtModule(CommandLine commandLine, DrtVariablesEstimator drtVariablesEstimator, boolean useFeeder) {
+	public IDFDrtModule(CommandLine commandLine, DrtVariablesEstimator drtVariablesEstimator, boolean useFeeder) throws CommandLine.ConfigurationException {
 		this.commandLine = commandLine;
 		this.useFeeder = useFeeder;
 		this.drtVariablesEstimator = drtVariablesEstimator;
+		if(commandLine.hasOption("drtRejectionsPenaltyProvider")) {
+			this.drtRejectionsPenaltyProviderType = DrtRejectionsPenaltyProviderType.valueOf(commandLine.getOptionStrict("drtRejectionsPenaltyProvider"));
+		}
 	}
 
 	@Override
 	protected void installEqasimExtension() {
 		// Configure mode availability
 		bindModeAvailability(IDFDrtModeAvailability.NAME).toInstance(new IDFDrtModeAvailability(this.useFeeder));
-
 		// Configure choice alternative for DRT
 		bindUtilityEstimator("drt").to(DrtUtilityEstimator.class);
 		bindCostModel("drt").to(DrtCostModel.class);
@@ -69,11 +82,30 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 			@Named("drt")
 			CostModel costModel;
 
+			@Inject
+			MatsimServices matsimServices;
+
+			@Inject
+			@DvrpMode("drt")
+			FleetSpecification fleetSpecification;
+
 			@Override
 			public DrtVariablesExperienceBasedWithPenaltyRejectionEstimator get() {
-				return new DrtVariablesExperienceBasedWithPenaltyRejectionEstimator(costModel);
+				return new DrtVariablesExperienceBasedWithPenaltyRejectionEstimator(costModel, matsimServices);
 			}
 		};
+		bind(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).toProvider(penaltyRejectionEstimatorProvider).asEagerSingleton();
+		addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
+		switch (drtRejectionsPenaltyProviderType) {
+			case None:
+				bind(DrtRejectionPenaltyProvider.class).to(NoRejectionsPenalty.class).asEagerSingleton();
+				break;
+			case Linear:
+				bind(DrtRejectionsLinearPenaltyProvider.class).asEagerSingleton();
+				bind(DrtRejectionPenaltyProvider.class).to(DrtRejectionsLinearPenaltyProvider.class).asEagerSingleton();
+				addControlerListenerBinding().to(DrtRejectionsLinearPenaltyProvider.class).asEagerSingleton();
+				break;
+		}
 
 		switch (drtVariablesEstimator) {
 			case Regular:
@@ -86,9 +118,9 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 				break;
 
 			case ExperienceBasedWithRejectionPenalty:
-				bind(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).toProvider(penaltyRejectionEstimatorProvider).asEagerSingleton();
+				//bind(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).toProvider(penaltyRejectionEstimatorProvider).asEagerSingleton();
 				bind(DrtPredictorInterface.class).to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
-				addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
+				//addEventHandlerBinding().to(DrtVariablesExperienceBasedWithPenaltyRejectionEstimator.class).asEagerSingleton();
 		}
 		//addEventHandlerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();
 		addControlerListenerBinding().to(DrtVariablesDeltaRecorder.class).asEagerSingleton();

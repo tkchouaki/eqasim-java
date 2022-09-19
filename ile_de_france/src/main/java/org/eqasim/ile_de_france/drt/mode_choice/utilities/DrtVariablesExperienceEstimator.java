@@ -21,6 +21,7 @@ public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, P
     private double droppedOffNumber=0;
     private double totalWaitingTime=0;
     private double totalTravelTime=0;
+    private int iteration;
     private Map<Id<Person>, Double> lastDrtRequestSubmissionTime = new HashMap<>();
     private Map<Id<Person>, Double> lastPickedUpTime = new HashMap<>();
     private CostModel costModel;
@@ -39,6 +40,7 @@ public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, P
         this.totalWaitingTime = 0;
         this.lastPickedUpTime.clear();;
         this.lastDrtRequestSubmissionTime.clear();
+        this.iteration = iteration;
     }
 
     @Override
@@ -92,5 +94,8 @@ public class DrtVariablesExperienceEstimator implements DrtPredictorInterface, P
     public void handleEvent(PassengerPickedUpEvent passengerPickedUpEvent) {
         this.totalWaitingTime += passengerPickedUpEvent.getTime() - this.lastDrtRequestSubmissionTime.get(passengerPickedUpEvent.getPersonId());
         this.lastPickedUpTime.put(passengerPickedUpEvent.getPersonId(), passengerPickedUpEvent.getTime());
+    }
+    public int getIteration() {
+        return this.iteration;
     }
 }

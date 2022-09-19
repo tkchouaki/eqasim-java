@@ -6,6 +6,7 @@ import com.google.inject.Singleton;
 import org.matsim.contribs.discrete_mode_choice.components.tour_finder.TourFinder;
 import org.matsim.contribs.discrete_mode_choice.model.DiscreteModeChoiceModel;
 import org.matsim.contribs.discrete_mode_choice.model.EventFiringDelegatingModel;
+import org.matsim.contribs.discrete_mode_choice.model.EventFiringTourBasedModel;
 import org.matsim.contribs.discrete_mode_choice.model.filters.CompositeTourFilter;
 import org.matsim.contribs.discrete_mode_choice.model.filters.CompositeTripFilter;
 import org.matsim.contribs.discrete_mode_choice.model.mode_availability.ModeAvailability;
@@ -46,7 +47,7 @@ public class EventFiringModelModule extends AbstractModule {
 
     @Provides
     public DiscreteModeChoiceModel provideDiscreteModeChoiceModel(DiscreteModeChoiceConfigGroup dmcConfig,
-                                                                  Provider<TourBasedModel> tourBasedProvider, Provider<TripBasedModel> tripBasedProvider,
+                                                                  Provider<EventFiringTourBasedModel> tourBasedProvider, Provider<TripBasedModel> tripBasedProvider,
                                                                   EventsManager eventsManager) {
         switch (dmcConfig.getModelType()) {
             case Tour:
@@ -59,12 +60,13 @@ public class EventFiringModelModule extends AbstractModule {
     }
 
     @Provides
-    public TourBasedModel provideTourBasedModel(ModeAvailability modeAvailability, TourFilter tourFilter,
+    public EventFiringTourBasedModel provideTourBasedModel(ModeAvailability modeAvailability, TourFilter tourFilter,
                                                 TourEstimator tourEstimator, TourConstraintFactory tourConstraintFactory, TourFinder tourFinder,
                                                 UtilitySelectorFactory selectorFactory, ModeChainGeneratorFactory modeChainGeneratorFactory,
-                                                DiscreteModeChoiceConfigGroup dmcConfig, TimeInterpreter.Factory timeInterpreterFactory) {
-        return new TourBasedModel(tourEstimator, modeAvailability, tourConstraintFactory, tourFinder, tourFilter,
-                selectorFactory, modeChainGeneratorFactory, dmcConfig.getFallbackBehaviour(), timeInterpreterFactory);
+                                                DiscreteModeChoiceConfigGroup dmcConfig, TimeInterpreter.Factory timeInterpreterFactory,
+                                                EventsManager eventsManager) {
+        return new EventFiringTourBasedModel(tourEstimator, modeAvailability, tourConstraintFactory, tourFinder, tourFilter,
+                selectorFactory, modeChainGeneratorFactory, dmcConfig.getFallbackBehaviour(), timeInterpreterFactory, eventsManager);
     }
 
     @Provides
