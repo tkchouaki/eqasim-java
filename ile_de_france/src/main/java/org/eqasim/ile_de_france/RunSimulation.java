@@ -28,6 +28,7 @@ public class RunSimulation {
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		configurator.configureScenario(scenario);
 		ScenarioUtils.loadScenario(scenario);
+		configurator.adjustScenario(scenario);
 
 		Controler controller = new Controler(scenario);
 		configurator.configureController(controller);

@@ -25,68 +25,66 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 public class ExportTransitLinesToShapefile {
-    public static void main(String[] args) throws Exception {
-        CommandLine cmd = new CommandLine.Builder(args) //
-                .requireOptions("schedule-path", "network-path", "output-path", "crs") //
-                .build();
+	public static void main(String[] args) throws Exception {
+		CommandLine cmd = new CommandLine.Builder(args) //
+				.requireOptions("schedule-path", "network-path", "output-path", "crs") //
+				.build();
 
-        String schedulePath = cmd.getOptionStrict("schedule-path");
-        String networkPath = cmd.getOptionStrict("network-path");
+		String schedulePath = cmd.getOptionStrict("schedule-path");
+		String networkPath = cmd.getOptionStrict("network-path");
 
-        Config config = ConfigUtils.createConfig();
-        Scenario scenario = ScenarioUtils.createScenario(config);
-        new TransitScheduleReader(scenario).readFile(schedulePath);
-        new MatsimNetworkReader(scenario.getNetwork()).readFile(networkPath);
+		Config config = ConfigUtils.createConfig();
+		Scenario scenario = ScenarioUtils.createScenario(config);
+		new TransitScheduleReader(scenario).readFile(schedulePath);
+		new MatsimNetworkReader(scenario.getNetwork()).readFile(networkPath);
 
-        CoordinateReferenceSystem crs = MGC.getCRS(cmd.getOptionStrict("crs"));
+		CoordinateReferenceSystem crs = MGC.getCRS(cmd.getOptionStrict("crs"));
 
-        Collection<SimpleFeature> features = new LinkedList<>();
+		Collection<SimpleFeature> features = new LinkedList<>();
 
-        PolylineFeatureFactory linkFactory = new PolylineFeatureFactory.Builder() //
-                .setCrs(crs).setName("line") //
-                .addAttribute("line_id", String.class)
-                .addAttribute("line_name", String.class)//
-                .addAttribute("route_id", String.class) //
-                .addAttribute("mode", String.class) //
-                .create();
+		PolylineFeatureFactory linkFactory = new PolylineFeatureFactory.Builder() //
+				.setCrs(crs).setName("line") //
+				.addAttribute("line_id", String.class) //
+				.addAttribute("route_id", String.class) //
+				.addAttribute("mode", String.class) //
+				.create();
 
-        Network network = scenario.getNetwork();
+		Network network = scenario.getNetwork();
 
-        for (TransitLine transitLine : scenario.getTransitSchedule().getTransitLines().values()) {
-            for (TransitRoute transitRoute : transitLine.getRoutes().values()) {
-                NetworkRoute networkRoute = transitRoute.getRoute();
-                List<Link> links = new ArrayList<>(networkRoute.getLinkIds().size() + 2);
-                links.add(network.getLinks().get(networkRoute.getStartLinkId()));
-                networkRoute.getLinkIds().forEach(id -> links.add(network.getLinks().get(id)));
-                links.add(network.getLinks().get(networkRoute.getEndLinkId()));
+		for (TransitLine transitLine : scenario.getTransitSchedule().getTransitLines().values()) {
+			for (TransitRoute transitRoute : transitLine.getRoutes().values()) {
+				NetworkRoute networkRoute = transitRoute.getRoute();
+				List<Link> links = new ArrayList<>(networkRoute.getLinkIds().size() + 2);
+				links.add(network.getLinks().get(networkRoute.getStartLinkId()));
+				networkRoute.getLinkIds().forEach(id -> links.add(network.getLinks().get(id)));
+				links.add(network.getLinks().get(networkRoute.getEndLinkId()));
 
-                Coordinate[] coordinates = new Coordinate[links.size() + 1];
+				Coordinate[] coordinates = new Coordinate[links.size() + 1];
 
-                for (int i = 0; i < links.size(); i++) {
-                    Link link = links.get(i);
+				for (int i = 0; i < links.size(); i++) {
+					Link link = links.get(i);
 
-                    if (i == 0) {
-                        coordinates[i] = new Coordinate(link.getFromNode().getCoord().getX(),
-                                link.getFromNode().getCoord().getY());
-                    }
+					if (i == 0) {
+						coordinates[i] = new Coordinate(link.getFromNode().getCoord().getX(),
+								link.getFromNode().getCoord().getY());
+					}
 
-                    coordinates[i + 1] = new Coordinate(link.getToNode().getCoord().getX(),
-                            link.getToNode().getCoord().getY());
-                }
+					coordinates[i + 1] = new Coordinate(link.getToNode().getCoord().getX(),
+							link.getToNode().getCoord().getY());
+				}
 
-                SimpleFeature feature = linkFactory.createPolyline( //
-                        coordinates, //
-                        new Object[] { //
-                                transitLine.getId().toString(),
-                                transitLine.getName(),//
-                                transitRoute.getId().toString(), //
-                                transitRoute.getTransportMode() //
-                        }, null);
+				SimpleFeature feature = linkFactory.createPolyline( //
+						coordinates, //
+						new Object[] { //
+								transitLine.getId().toString(), //
+								transitRoute.getId().toString(), //
+								transitRoute.getTransportMode() //
+						}, null);
 
-                features.add(feature);
-            }
-        }
+				features.add(feature);
+			}
+		}
 
-        ShapeFileWriter.writeGeometries(features, cmd.getOptionStrict("output-path"));
-    }
+		ShapeFileWriter.writeGeometries(features, cmd.getOptionStrict("output-path"));
+	}
 }

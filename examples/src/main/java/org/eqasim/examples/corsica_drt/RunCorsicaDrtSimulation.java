@@ -17,7 +17,7 @@ import org.eqasim.ile_de_france.IDFConfigurator;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.contrib.drt.optimizer.insertion.DrtInsertionSearchParams;
-import org.matsim.contrib.drt.optimizer.insertion.SelectiveInsertionSearchParams;
+import org.matsim.contrib.drt.optimizer.insertion.selective.SelectiveInsertionSearchParams;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.drt.routing.DrtRouteFactory;
 import org.matsim.contrib.drt.run.DrtConfigGroup;
@@ -120,7 +120,7 @@ public class RunCorsicaDrtSimulation {
 			}
 
 			// Set analysis interval
-			eqasimConfig.setTripAnalysisInterval(1);
+			eqasimConfig.setAnalysisInterval(1);
 		}
 
 		{ // Set up some defaults for MATSim scoring
