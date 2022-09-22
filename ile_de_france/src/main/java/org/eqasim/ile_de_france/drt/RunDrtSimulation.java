@@ -16,13 +16,16 @@ import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
 import org.matsim.alonso_mora.AlonsoMoraConfigGroup;
 import org.matsim.alonso_mora.AlonsoMoraConfigurator;
 import org.matsim.alonso_mora.MultiModeAlonsoMoraConfigGroup;
+import org.matsim.alonso_mora.glpk.GlpkJniAssignmentParameters;
+import org.matsim.alonso_mora.glpk.GlpkJniRelocationParameters;
+import org.matsim.alonso_mora.glpk.GlpkModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.contrib.drt.optimizer.insertion.DrtInsertionSearchParams;
-import org.matsim.contrib.drt.optimizer.insertion.SelectiveInsertionSearchParams;
+import org.matsim.contrib.drt.optimizer.insertion.selective.SelectiveInsertionSearchParams;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.drt.routing.DrtRouteFactory;
 import org.matsim.contrib.drt.run.DrtConfigGroup;
@@ -43,10 +46,8 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.scenario.ScenarioUtils;
 
 import java.nio.file.Path;;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.sql.Array;
+import java.util.*;
 
 public class RunDrtSimulation {
     public static void main(String[] args) throws CommandLine.ConfigurationException {
@@ -158,7 +159,7 @@ public class RunDrtSimulation {
             }
 
             // Set analysis interval
-            eqasimConfig.setTripAnalysisInterval(1);
+            eqasimConfig.setAnalysisInterval(1);
         }
 
         if(cmd.hasOption("drt-vehicles-path")){ // Set up some defaults for MATSim scoring
@@ -224,6 +225,7 @@ public class RunDrtSimulation {
             }
         }
 
+
         if(useAlonsoMora) {
             config.qsim().setInsertingWaitingVehiclesBeforeDrivingVehicles(true);
             MultiModeAlonsoMoraConfigGroup multiModeConfig = new MultiModeAlonsoMoraConfigGroup();
@@ -236,7 +238,7 @@ public class RunDrtSimulation {
             amConfig.setMaximumQueueTime(0.0);
 
             amConfig.setAssignmentInterval(30);
-            amConfig.setRelocationInterval(0);
+            amConfig.setRelocationInterval(30);
 
             amConfig.getCongestionMitigationParameters().setAllowBareReassignment(false);
             amConfig.getCongestionMitigationParameters().setAllowPickupViolations(true);
@@ -245,19 +247,24 @@ public class RunDrtSimulation {
 
             amConfig.setRerouteDuringScheduling(false);
 
-            amConfig.setCheckDeterminsticTravelTimes(true);
+            amConfig.setCheckDeterminsticTravelTimes(false);
 
             amConfig.setSequenceGeneratorType(AlonsoMoraConfigGroup.SequenceGeneratorType.Combined);
 
-            AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters assignmentParameters = new AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters();
-            amConfig.addParameterSet(assignmentParameters);
+            GlpkJniAssignmentParameters jniAssignmentParameters = new GlpkJniAssignmentParameters();
+            amConfig.addParameterSet(jniAssignmentParameters);
+            //AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters assignmentParameters = new AlonsoMoraConfigGroup.GlpkMpsAssignmentParameters();
+            //amConfig.addParameterSet(assignmentParameters);
 
-            AlonsoMoraConfigGroup.GlpkMpsRelocationParameters relocationParameters = new AlonsoMoraConfigGroup.GlpkMpsRelocationParameters();
-            amConfig.addParameterSet(relocationParameters);
+            GlpkJniRelocationParameters jniRelocationParameters = new GlpkJniRelocationParameters();
+            amConfig.addParameterSet(jniRelocationParameters);
+            //AlonsoMoraConfigGroup.GlpkMpsRelocationParameters relocationParameters = new AlonsoMoraConfigGroup.GlpkMpsRelocationParameters();
+            //amConfig.addParameterSet(relocationParameters);
 
             AlonsoMoraConfigGroup.MatrixEstimatorParameters estimator = new AlonsoMoraConfigGroup.MatrixEstimatorParameters();
             amConfig.addParameterSet(estimator);
             AlonsoMoraConfigurator.configure(controller, amConfig.getMode());
+            controller.addOverridingQSimModule(new GlpkModule(new ArrayList<>(multiModeDrtConfig.getModalElements()).get(0), amConfig));
         }
 
         if(useEpsilon) {

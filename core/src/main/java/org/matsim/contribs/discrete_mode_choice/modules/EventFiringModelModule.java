@@ -19,9 +19,9 @@ import org.matsim.contribs.discrete_mode_choice.model.trip_based.TripEstimator;
 import org.matsim.contribs.discrete_mode_choice.model.utilities.UtilitySelectorFactory;
 import org.matsim.contribs.discrete_mode_choice.modules.config.DiscreteModeChoiceConfigGroup;
 import org.matsim.contribs.discrete_mode_choice.replanning.TripListConverter;
-import org.matsim.contribs.discrete_mode_choice.replanning.time_interpreter.TimeInterpreter;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.AbstractModule;
+import org.matsim.core.utils.timing.TimeInterpretation;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -63,7 +63,7 @@ public class EventFiringModelModule extends AbstractModule {
     public EventFiringTourBasedModel provideTourBasedModel(ModeAvailability modeAvailability, TourFilter tourFilter,
                                                 TourEstimator tourEstimator, TourConstraintFactory tourConstraintFactory, TourFinder tourFinder,
                                                 UtilitySelectorFactory selectorFactory, ModeChainGeneratorFactory modeChainGeneratorFactory,
-                                                DiscreteModeChoiceConfigGroup dmcConfig, TimeInterpreter.Factory timeInterpreterFactory,
+                                                DiscreteModeChoiceConfigGroup dmcConfig, TimeInterpretation timeInterpreterFactory,
                                                 EventsManager eventsManager) {
         return new EventFiringTourBasedModel(tourEstimator, modeAvailability, tourConstraintFactory, tourFinder, tourFilter,
                 selectorFactory, modeChainGeneratorFactory, dmcConfig.getFallbackBehaviour(), timeInterpreterFactory, eventsManager);
@@ -73,7 +73,7 @@ public class EventFiringModelModule extends AbstractModule {
     public TripBasedModel provideTripBasedModel(TripEstimator estimator, TripFilter tripFilter,
                                                 ModeAvailability modeAvailability, TripConstraintFactory constraintFactory,
                                                 UtilitySelectorFactory selectorFactory, DiscreteModeChoiceConfigGroup dmcConfig,
-                                                TimeInterpreter.Factory timeInterpreterFactory) {
+                                                TimeInterpretation timeInterpreterFactory) {
         return new TripBasedModel(estimator, tripFilter, modeAvailability, constraintFactory, selectorFactory,
                 dmcConfig.getFallbackBehaviour(), timeInterpreterFactory);
     }

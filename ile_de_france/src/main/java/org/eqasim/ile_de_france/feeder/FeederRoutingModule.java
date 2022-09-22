@@ -7,13 +7,16 @@ import org.matsim.api.core.v01.population.*;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.dvrp.router.DvrpRoutingModule;
 import org.matsim.core.network.NetworkUtils;
+import org.matsim.core.router.DefaultRoutingRequest;
 import org.matsim.core.router.RoutingModule;
+import org.matsim.core.router.RoutingRequest;
 import org.matsim.core.utils.collections.QuadTree;
 import org.matsim.core.utils.geometry.CoordUtils;
 import org.matsim.facilities.ActivityFacilityImpl;
 import org.matsim.facilities.FacilitiesUtils;
 import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.*;
+import org.matsim.utils.objectattributes.attributable.Attributes;
 
 import java.util.*;
 
@@ -74,7 +77,6 @@ public class FeederRoutingModule implements RoutingModule {
 		}
 	}
 
-	@Override
 	public List<? extends PlanElement> calcRoute(Facility fromFacility, Facility toFacility, double departureTime,
 			Person person) {
 		Facility accessFacility = this.quadTree.getClosest(fromFacility.getCoord().getX(), fromFacility.getCoord().getY());
@@ -83,7 +85,7 @@ public class FeederRoutingModule implements RoutingModule {
 		List<PlanElement> intermodalRoute = new LinkedList<>();
 		List<? extends PlanElement> drtRoute = null;
 		if(! (fromFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) fromFacility).getId().toString().startsWith("outside")) {
-			drtRoute = drtRoutingModule.calcRoute(fromFacility, accessFacility, departureTime, person);
+			drtRoute = drtRoutingModule.calcRoute(DefaultRoutingRequest.withoutAttributes(fromFacility, accessFacility, departureTime, person));
 		}
 		if(drtRoute != null) {
 			for(PlanElement planElement: drtRoute) {
@@ -117,7 +119,7 @@ public class FeederRoutingModule implements RoutingModule {
 			intermodalRoute.add(accessInteractionActivity);
 		}
 
-		List<PlanElement> ptRoute = new LinkedList<>(transitRoutingModule.calcRoute(accessFacility, egressFacility, accessTime, person));
+		List<PlanElement> ptRoute = new LinkedList<>(transitRoutingModule.calcRoute(DefaultRoutingRequest.withoutAttributes(accessFacility, egressFacility, accessTime, person)));
 		double egressTime = accessTime;
 
 		for (PlanElement element : ptRoute) {
@@ -130,7 +132,7 @@ public class FeederRoutingModule implements RoutingModule {
 
 		if(!(egressFacility instanceof ActivityFacilityImpl) || ! ((ActivityFacilityImpl) egressFacility).getId().toString().startsWith("outside"))
 		{
-			drtRoute = drtRoutingModule.calcRoute(egressFacility, toFacility, egressTime, person);
+			drtRoute = drtRoutingModule.calcRoute(DefaultRoutingRequest.withoutAttributes(egressFacility, toFacility, egressTime, person));
 			if(drtRoute != null) {
 				for(PlanElement planElement: drtRoute) {
 					if(planElement instanceof Leg){
@@ -152,7 +154,7 @@ public class FeederRoutingModule implements RoutingModule {
 		}
 
 		if(drtRoute == null) {
-			intermodalRoute.addAll(transitRoutingModule.calcRoute(accessFacility, toFacility, accessTime, person));
+			intermodalRoute.addAll(transitRoutingModule.calcRoute(DefaultRoutingRequest.withoutAttributes(accessFacility, toFacility, accessTime, person)));
 		} else {
 			intermodalRoute.addAll(ptRoute);
 			Activity egressInteractionActivity = populationFactory.createActivityFromLinkId("feeder interaction", egressFacility.getLinkId());
@@ -161,5 +163,10 @@ public class FeederRoutingModule implements RoutingModule {
 			intermodalRoute.addAll(drtRoute);
 		}
 		return intermodalRoute;
+	}
+
+	@Override
+	public List<? extends PlanElement> calcRoute(RoutingRequest routingRequest) {
+		return this.calcRoute(routingRequest.getFromFacility(), routingRequest.getToFacility(), routingRequest.getDepartureTime(), routingRequest.getPerson());
 	}
 }

@@ -34,13 +34,13 @@ public class PublicTransportLegListener implements PersonDepartureEventHandler, 
 	}
 
 	public void handleEvent(PublicTransitEvent event) {
-		trips.add(new PublicTransportLegItem(event.getPersonId(), //
+		/*trips.add(new PublicTransportLegItem(event.getPersonId(), //
 				tripIndices.get(event.getPersonId()), //
 				legIndices.get(event.getPersonId()), //
 				event.getAccessStopId(), //
 				event.getEgressStopId(), //
 				event.getTransitLineId(), //
-				event.getTransitRouteId()));
+				event.getTransitRouteId()));*/
 	}
 
 	@Override

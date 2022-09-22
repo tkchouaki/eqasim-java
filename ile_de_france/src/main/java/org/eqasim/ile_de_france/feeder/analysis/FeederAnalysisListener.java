@@ -37,7 +37,7 @@ public class FeederAnalysisListener implements IterationStartsListener, Iteratio
     public FeederAnalysisListener(EqasimConfigGroup config, MultiModeDrtConfigGroup drtConfig,
                                 OutputDirectoryHierarchy outputDirectory, Network network) {
         this.outputDirectory = outputDirectory;
-        this.analysisInterval = config.getTripAnalysisInterval();
+        this.analysisInterval = config.getAnalysisInterval();
         this.network = network;
         this.vehicleRegistry = new VehicleRegistry();
 

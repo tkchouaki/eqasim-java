@@ -24,7 +24,7 @@ public class DvrpTaskStartedEventDetector implements GenericEventHandler {
         taskTypeMap.put(EmptyVehicleRelocator.RELOCATE_VEHICLE_TASK_TYPE.name(), EmptyVehicleRelocator.RELOCATE_VEHICLE_TASK_TYPE);
         taskTypeMap.put(DrtDriveTask.TYPE.name(), DrtDriveTask.TYPE);
         taskTypeMap.put(DrtStayTask.TYPE.name(), DrtStayTask.TYPE);
-        taskTypeMap.put(DrtStopTask.TYPE.name(), DrtStopTask.TYPE);
+        taskTypeMap.put(DefaultDrtStopTask.TYPE.name(), DefaultDrtStopTask.TYPE);
     }
 
     @Override

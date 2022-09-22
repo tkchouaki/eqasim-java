@@ -23,11 +23,9 @@ public class PublicTransportLegItem {
 	public String routeMode;
 	public String lineName;
 
-	public PublicTransportTripItem(Id<Person> personId, int personTripId, Id<TransitStopFacility> accessStopId,
-			Id<TransitStopFacility> egressStopId, Id<TransitLine> transitLineId, Id<TransitRoute> transitRouteId, double distance, double vehicleDepartureTime, double travelTime, String lineName, String routeMode) {
-	public PublicTransportLegItem(Id<Person> personId, int personTripId, int legIndex,
-			Id<TransitStopFacility> accessStopId, Id<TransitStopFacility> egressStopId, Id<TransitLine> transitLineId,
-			Id<TransitRoute> transitRouteId) {
+
+	public PublicTransportLegItem(Id<Person> personId, int personTripId, Id<TransitStopFacility> accessStopId,
+								  Id<TransitStopFacility> egressStopId, Id<TransitLine> transitLineId, Id<TransitRoute> transitRouteId, double distance, double vehicleDepartureTime, double travelTime, String lineName, String routeMode) {
 		this.personId = personId;
 		this.personTripId = personTripId;
 		this.legIndex = legIndex;

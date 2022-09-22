@@ -40,9 +40,21 @@
 		</dependency>
 
 		<dependency>
+			<groupId>org.matsim.contrib</groupId>
+			<artifactId>common</artifactId>
+			<version>${matsim.version}</version>
+		</dependency>
+
+		<dependency>
 			<groupId>com.github.MATSimToCBA</groupId>
 			<artifactId>matsim-cba</artifactId>
 			<version>-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.github.matsim-org</groupId>
+			<artifactId>alonso-mora</artifactId>
+			<version>-238cf5e9df-1</version>
 		</dependency>
 
 		<dependency>

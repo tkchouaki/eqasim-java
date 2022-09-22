@@ -1,7 +1,6 @@
 package org.eqasim.ile_de_france.drt;
 
 import org.apache.log4j.Logger;
-import org.eqasim.core.analysis.RunTripAnalysis;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
