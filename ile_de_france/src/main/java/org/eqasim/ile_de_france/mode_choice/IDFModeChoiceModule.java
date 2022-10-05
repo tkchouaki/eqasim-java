@@ -50,6 +50,7 @@ public class IDFModeChoiceModule extends AbstractEqasimExtension {
 		bind(IDFSpatialPredictor.class);
 
 		bind(ModeParameters.class).to(IDFModeParameters.class);
+		addControlerListenerBinding().to(SelectedToursRecorder.class).asEagerSingleton();
 	}
 
 	@Provides
