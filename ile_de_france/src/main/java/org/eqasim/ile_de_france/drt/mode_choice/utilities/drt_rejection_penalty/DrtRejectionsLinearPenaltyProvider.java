@@ -18,8 +18,6 @@ public class DrtRejectionsLinearPenaltyProvider implements DrtRejectionPenaltyPr
     private final double rejectionPenaltyAlpha; //TO TEST 0.01 -> 0.3 -> 1
     private final static int ENABLE_AFTER_ITERATION = -1;
     private final static int MEMORY_SIZE = 10;
-    private final static double MIN_REJECTION_RATE_DELTA = 0.02;
-    private final static double MIN_REQUESTS_NUMBER_DELTA = 0.02;
     private double rejectionPenalty;
     private final RejectionTracker rejectionTracker;
     private final MatsimServices services;
@@ -31,14 +29,12 @@ public class DrtRejectionsLinearPenaltyProvider implements DrtRejectionPenaltyPr
     private final List<Double> lastPenalties = new ArrayList<>();
     private final List<Integer> lastNumberOfRequests = new ArrayList<>();
     private final Map<Integer, Double> numberOfRequestsToRejectionRates = new HashMap<>();
-    private final DrtRejectionsLinearPenaltyProviderConfigGroup configGroup;
 
 
     @Inject
     public DrtRejectionsLinearPenaltyProvider(RejectionTracker rejectionTracker, MatsimServices services, DrtRejectionsLinearPenaltyProviderConfigGroup configGroup) {
         this.rejectionTracker = rejectionTracker;
         this.services = services;
-        this.configGroup = configGroup;
         this.targetRejectionProbability = configGroup.getTargetRejectionProbability();
         this.initialRejectionPenalty = configGroup.getInitialRejectionPenalty();
         this.rejectionPenaltyAlpha = configGroup.getAlpha();
@@ -73,11 +69,6 @@ public class DrtRejectionsLinearPenaltyProvider implements DrtRejectionPenaltyPr
 
         this.rejectionRateDeltaHistory.put(event.getIteration(), deltaRejections);
         this.requestsNumberDeltaHistory.put(event.getIteration(), deltaRequests);
-
-        if(deltaRequests > MIN_REQUESTS_NUMBER_DELTA && deltaRejections < MIN_REJECTION_RATE_DELTA) {
-            System.out.println("Detected useless increase of penalty at iteration " + event.getIteration());
-            this.rejectionPenalty = this.lastPenalties.get(0);
-        }
 
         if(!Double.isNaN(lastRejectionProbability) && targetRejectionProbability < lastRejectionProbability && event.getIteration() >= ENABLE_AFTER_ITERATION){
             double delta = targetRejectionProbability - lastRejectionProbability;
