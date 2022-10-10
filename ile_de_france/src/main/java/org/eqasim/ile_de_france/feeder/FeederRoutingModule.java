@@ -91,7 +91,7 @@ public class FeederRoutingModule implements RoutingModule {
 					if(leg.getMode().equals("drt")){
 						DrtRoute route = (DrtRoute) leg.getRoute();
 						if(route.getDirectRideTime() >= route.getMaxWaitTime()) {
-							logger.info("FEEDER ACCESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
+							//logger.info("FEEDER ACCESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
 							//drtRoute = null;
 						}
 					}
@@ -137,7 +137,7 @@ public class FeederRoutingModule implements RoutingModule {
 						if(leg.getMode().equals("drt")){
 							DrtRoute route = (DrtRoute) leg.getRoute();
 							if(route.getDirectRideTime() >= route.getMaxWaitTime()) {
-								logger.info("FEEDER EGRESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
+								//logger.info("FEEDER EGRESS TRIP BREAKS CONSTRAINTS, CANCELLING IT");
 								//drtRoute = null;
 							}
 						}
