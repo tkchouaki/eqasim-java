@@ -1,6 +1,7 @@
 package org.eqasim.ile_de_france.feeder;
 
 import org.apache.log4j.Logger;
+import org.eqasim.ile_de_france.drt.mode_choice.IDFDrtModeAvailability;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.TransportMode;
 import org.matsim.api.core.v01.network.Network;
@@ -8,6 +9,9 @@ import org.matsim.api.core.v01.population.*;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.dvrp.router.DvrpRoutingModule;
 import org.matsim.contribs.discrete_mode_choice.model.mode_availability.CarModeAvailability;
+import org.matsim.contribs.discrete_mode_choice.model.mode_availability.ModeAvailability;
+import org.matsim.contribs.discrete_mode_choice.model.tour_based.TourConstraint;
+import org.matsim.contribs.discrete_mode_choice.model.tour_based.TourConstraintFactory;
 import org.matsim.core.network.NetworkUtils;
 import org.matsim.core.router.DefaultRoutingRequest;
 import org.matsim.core.router.RoutingModule;
@@ -164,22 +168,6 @@ public class FeederRoutingModule implements RoutingModule {
 
 	@Override
 	public List<? extends PlanElement> calcRoute(RoutingRequest routingRequest) {
-		CarModeAvailability carModeAvailability = new CarModeAvailability(Collections.singleton(TransportMode.car));
-		if(carModeAvailability.getAvailableModes(routingRequest.getPerson(), new ArrayList<>()).size() == 0) {
-			boolean foundPt = false;
-			for(PlanElement planElement : this.transitRoutingModule.calcRoute(routingRequest)) {
-				if (planElement instanceof Leg) {
-					Leg leg = (Leg) planElement;
-					if(leg.getMode().equals(TransportMode.pt)){
-						foundPt = true;
-						break;
-					}
-				}
-			}
-			if(!foundPt) {
-				return null;
-			}
-		}
 		return this.calcRoute(routingRequest.getFromFacility(), routingRequest.getToFacility(), routingRequest.getDepartureTime(), routingRequest.getPerson());
 	}
 }

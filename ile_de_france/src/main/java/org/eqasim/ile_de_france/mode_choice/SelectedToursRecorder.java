@@ -1,9 +1,13 @@
 package org.eqasim.ile_de_france.mode_choice;
 
 import com.google.inject.Inject;
+import org.matsim.api.core.v01.population.Activity;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.contribs.discrete_mode_choice.model.TourSelectorEvent;
 import org.matsim.contribs.discrete_mode_choice.model.TourSelectorEventHandler;
 import org.matsim.contribs.discrete_mode_choice.model.tour_based.TourCandidate;
+import org.matsim.contribs.discrete_mode_choice.model.trip_based.candidates.DefaultRoutedTripCandidate;
 import org.matsim.contribs.discrete_mode_choice.model.trip_based.candidates.TripCandidate;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.MatsimServices;
@@ -11,6 +15,7 @@ import org.matsim.core.controler.events.BeforeMobsimEvent;
 import org.matsim.core.controler.events.IterationStartsEvent;
 import org.matsim.core.controler.listener.BeforeMobsimListener;
 import org.matsim.core.controler.listener.IterationStartsListener;
+import org.matsim.core.population.io.PopulationWriterHandler;
 import org.matsim.core.utils.collections.Tuple;
 import org.matsim.core.utils.io.MatsimXmlWriter;
 
@@ -77,7 +82,32 @@ public class SelectedToursRecorder extends MatsimXmlWriter implements TourSelect
         attributes.add(Tuple.of("mode", tripCandidate.getMode()));
         attributes.add(Tuple.of("utility", ""+tripCandidate.getUtility()));
         writeStartTag("TripCandidate", attributes);
+        if(tripCandidate instanceof DefaultRoutedTripCandidate) {
+            DefaultRoutedTripCandidate routedTripCandidate = (DefaultRoutedTripCandidate) tripCandidate;
+            for(PlanElement planElement: routedTripCandidate.getRoutedPlanElements()) {
+                if(planElement instanceof Activity) {
+                    this.writeActivity((Activity) planElement);
+                }
+                else if (planElement instanceof Leg) {
+                    this.writeLeg((Leg) planElement);
+                }
+            }
+        }
         writeEndTag("TripCandidate");
+    }
+
+    private void writeActivity(Activity activity) {
+        List<Tuple<String, String>> attributes = new ArrayList<>();
+        attributes.add(Tuple.of("type", activity.getType()));
+        writeStartTag("activity", attributes);
+        writeEndTag("activity");
+    }
+
+    private void writeLeg(Leg leg) {
+        List<Tuple<String, String>> attributes = new ArrayList<>();
+        attributes.add(Tuple.of("mode", leg.getMode()));
+        writeStartTag("leg", attributes);
+        writeEndTag("leg");
     }
 
     @Override

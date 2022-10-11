@@ -16,6 +16,7 @@ import org.matsim.core.utils.timing.TimeInterpretation;
 import org.matsim.core.utils.timing.TimeTracker;
 
 import java.util.*;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
@@ -79,6 +80,42 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
 
                 while (generator.hasNext()) {
                     List<String> tourModes = generator.next();
+
+                    if(tourModes.contains("feeder")) {
+                        List<String> otherTourModes = new ArrayList<>(tourModes);
+                        otherTourModes.replaceAll(s -> s.equals("feeder") ? "car" : s);
+                        if(!constraint.validateBeforeEstimation(tourTrips, otherTourModes, tourCandidateModes)) {
+                            continue;
+                        }
+
+                        TourCandidate otherCandidate = estimator.estimateTour(person, otherTourModes, tourTrips, tourCandidates);
+
+                        if (!Double.isFinite(otherCandidate.getUtility())) {
+                            logger.warn(buildIllegalUtilityMessage(tripIndex, person));
+                            continue;
+                        }
+
+                        if (!constraint.validateAfterEstimation(tourTrips, otherCandidate, tourCandidates)) {
+                            continue;
+                        }
+
+                        otherTourModes = new ArrayList<>(tourModes);
+                        otherTourModes.replaceAll(s -> s.equals("feeder") ? "pt" : s);
+                        if(!constraint.validateBeforeEstimation(tourTrips, otherTourModes, tourCandidateModes)) {
+                            continue;
+                        }
+
+                        otherCandidate = estimator.estimateTour(person, otherTourModes, tourTrips, tourCandidates);
+
+                        if (!Double.isFinite(otherCandidate.getUtility())) {
+                            logger.warn(buildIllegalUtilityMessage(tripIndex, person));
+                            continue;
+                        }
+
+                        if (!constraint.validateAfterEstimation(tourTrips, otherCandidate, tourCandidates)) {
+                            continue;
+                        }
+                    }
 
                     if (!constraint.validateBeforeEstimation(tourTrips, tourModes, tourCandidateModes)) {
                         tourModesExcludedBeforeEstimation.add(tourModes);
