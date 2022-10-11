@@ -81,42 +81,6 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
                 while (generator.hasNext()) {
                     List<String> tourModes = generator.next();
 
-                    if(tourModes.contains("feeder")) {
-                        List<String> otherTourModes = new ArrayList<>(tourModes);
-                        otherTourModes.replaceAll(s -> s.equals("feeder") ? "car" : s);
-                        if(!constraint.validateBeforeEstimation(tourTrips, otherTourModes, tourCandidateModes)) {
-                            continue;
-                        }
-
-                        TourCandidate otherCandidate = estimator.estimateTour(person, otherTourModes, tourTrips, tourCandidates);
-
-                        if (!Double.isFinite(otherCandidate.getUtility())) {
-                            logger.warn(buildIllegalUtilityMessage(tripIndex, person));
-                            continue;
-                        }
-
-                        if (!constraint.validateAfterEstimation(tourTrips, otherCandidate, tourCandidates)) {
-                            continue;
-                        }
-
-                        otherTourModes = new ArrayList<>(tourModes);
-                        otherTourModes.replaceAll(s -> s.equals("feeder") ? "pt" : s);
-                        if(!constraint.validateBeforeEstimation(tourTrips, otherTourModes, tourCandidateModes)) {
-                            continue;
-                        }
-
-                        otherCandidate = estimator.estimateTour(person, otherTourModes, tourTrips, tourCandidates);
-
-                        if (!Double.isFinite(otherCandidate.getUtility())) {
-                            logger.warn(buildIllegalUtilityMessage(tripIndex, person));
-                            continue;
-                        }
-
-                        if (!constraint.validateAfterEstimation(tourTrips, otherCandidate, tourCandidates)) {
-                            continue;
-                        }
-                    }
-
                     if (!constraint.validateBeforeEstimation(tourTrips, tourModes, tourCandidateModes)) {
                         tourModesExcludedBeforeEstimation.add(tourModes);
                         continue;
@@ -133,9 +97,37 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
                         candidatesExcludedAfterEstimation.add(candidate);
                         continue;
                     }
-
-                    selector.addCandidate(candidate);
                     utilityCandidates.add(candidate);
+                }
+                boolean removed;
+                do {
+                    removed = false;
+                    Set<Integer> nonRequiredFeederIndexes = new HashSet<>();
+                    for(TourCandidate tourCandidate: utilityCandidates) {
+                        for(int i=0; i<tourCandidate.getTripCandidates().size(); i++) {
+                            TripCandidate tripCandidate = tourCandidate.getTripCandidates().get(i);
+                            if(tripCandidate.getMode().equals("car") || tripCandidate.getMode().equals("pt")) {
+                                nonRequiredFeederIndexes.add(i);
+                            }
+                        }
+                    }
+                    List<TourCandidate> newUtilityCandidates = new ArrayList<>();
+                    for(TourCandidate tourCandidate: utilityCandidates) {
+                        boolean goodToAdd = true;
+                        for(int i=0; i<tourCandidate.getTripCandidates().size(); i++) {
+                            if(tourCandidate.getTripCandidates().get(i).getMode().equals("feeder") && !nonRequiredFeederIndexes.contains(i)){
+                                removed = true;
+                                goodToAdd = false;
+                            }
+                        }
+                        if(goodToAdd) {
+                            newUtilityCandidates.add(tourCandidate);
+                        }
+                    }
+                    utilityCandidates = newUtilityCandidates;
+                }while(removed);
+                for(TourCandidate tourCandidate: utilityCandidates){
+                    selector.addCandidate(tourCandidate);
                 }
                 Optional<UtilityCandidate> selectedCandidate = selector.select(random);
 
