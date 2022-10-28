@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 
+import org.apache.log4j.Logger;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -29,6 +30,9 @@ import org.matsim.vehicles.*;
 
 
 public class AdjustSchedule {
+
+    private static final Logger log = Logger.getLogger(AdjustSchedule.class);
+
     private static final String CSV_SEPARATOR = ";";
     private static final String FACILITIES_CSV_STOP_ID_COLUMN = "stop_id";
     private static final String FACILITIES_CSV_STOP_NAME_COLUMN = "stop_name";
@@ -42,6 +46,19 @@ public class AdjustSchedule {
     private static final Double MAX_DEPARTURE_TIME = 24.0 * 3600;
     private static final String DEFAULT_SPEED_KM_H = "40";
 
+    /**
+     * Retrieves a TransitStopFacility object that has a given name under the context of a given TransitLine id follwoing the logic below:
+     * - If a TransitStopFacility with the given name has been added into the schedule during the AdjustSchedule process, it is returned
+     * - If not, the given *lineId* should have a fallback TransitLine Id of a TransitLine that exists in the schedule. The TransitStopFacilities that appear in the routes of the line are then searched to find one with the given name.
+     *      - If it exists, the TransitStopFacility is returned
+     *      - If a problem occurs, an exception is raised
+     * @param stopFacilityName The name of the desired TransitStopFacility
+     * @param map A map name->TransitStopFacility of the facilities that have been added to the schedule in the AdjustSchedule process
+     * @param schedule
+     * @param lineId The Id of the TransitLine
+     * @param fallbacksMap A map name->Id<TransitLine>
+     * @return A TransitStopFacility with the given name
+     */
     public static TransitStopFacility getStopFacilityFromMapOrFallbackTransitLine(String stopFacilityName, Map<String, TransitStopFacility> map, TransitSchedule schedule, String lineId, Map<String, Id<TransitLine>> fallbacksMap) {
         if (!map.containsKey(stopFacilityName)) {
             if (!fallbacksMap.containsKey(lineId)) {
@@ -65,6 +82,74 @@ public class AdjustSchedule {
         }
     }
 
+    public static NetworkRoute createNetworkRoute(LinkNetworkRouteFactory linkNetworkRouteFactory, List<Id<Link>> linksIds) {
+        NetworkRoute networkRoute = (NetworkRoute) linkNetworkRouteFactory.createRoute(linksIds.get(0),
+                linksIds.get(linksIds.size() - 1));
+        networkRoute.setLinkIds(linksIds.get(0), linksIds.subList(1, linksIds.size() - 1),
+                linksIds.get(linksIds.size() - 1));
+        return networkRoute;
+    }
+
+    public static List<TransitRoute> splitTransitRoute(TransitRoute transitRoute, Collection<String> borders, TransitSchedule schedule, Network network) {
+        List<TransitRoute> newTransitRoutes = new ArrayList<>();
+        List<TransitRouteStop> transitRouteStops = transitRoute.getStops();
+        int i;
+        int j=0;
+        boolean included=true;
+        List<TransitRouteStop> currentTransitRouteStops = new ArrayList<>();
+        List<Id<Link>> currentLinkIds = new ArrayList<>();
+        double lastArrivalOffset = 0;
+        double lastDepartureOffset = 0;
+        LinkNetworkRouteFactory linkNetworkRouteFactory = new LinkNetworkRouteFactory();
+        for(i=0;i<transitRouteStops.size();i++) {
+            if(transitRoute.getRoute() != null) {
+                Link transitStopFacilityLink = network.getLinks().get(transitRouteStops.get(i).getStopFacility().getLinkId());
+                for(;j<transitRoute.getRoute().getLinkIds().size() && !transitStopFacilityLink.getToNode().getId().equals(network.getLinks().get(transitRoute.getRoute().getLinkIds().get(j)).getFromNode().getId());j++) {
+                    currentLinkIds.add(transitRoute.getRoute().getLinkIds().get(i));
+                }
+            }
+            if(borders.contains(transitRouteStops.get(i).getStopFacility().getName())) {
+                included = !included;
+                if (!included) {
+                    if(currentTransitRouteStops.size() > 0) {
+                        TransitRouteStop transitRouteStop = transitRouteStops.get(i);
+                        transitRouteStop = schedule.getFactory().createTransitRouteStop(transitRouteStop.getStopFacility(), transitRouteStop.getArrivalOffset().orElse(0)-lastArrivalOffset, transitRouteStop.getDepartureOffset().orElse(0)-lastDepartureOffset);
+                        currentTransitRouteStops.add(transitRouteStop);
+                        TransitRoute currentTransitRoute = schedule.getFactory().createTransitRoute(Id.create(transitRoute.getId().toString()+"_"+newTransitRoutes.size(), TransitRoute.class), createNetworkRoute(linkNetworkRouteFactory, currentLinkIds), currentTransitRouteStops, transitRoute.getTransportMode());
+                        for(Departure departure: transitRoute.getDepartures().values()) {
+                            Departure newDeparture = schedule.getFactory().createDeparture(Id.create(departure.getId().toString()+"_"+newTransitRoutes.size(), Departure.class), departure.getDepartureTime()+lastDepartureOffset);
+                            currentTransitRoute.addDeparture(newDeparture);
+                        }
+                        newTransitRoutes.add(currentTransitRoute);
+                        currentTransitRouteStops = new ArrayList<>();
+                    }
+                } else {
+                    lastDepartureOffset = transitRouteStops.get(i).getDepartureOffset().orElse(0);
+                    lastArrivalOffset = transitRouteStops.get(i).getDepartureOffset().orElse(0);
+                    currentLinkIds = new ArrayList<>();
+                    if(transitRoute.getRoute() != null) {
+                        currentLinkIds.add(transitRoute.getRoute().getLinkIds().get(j));
+                    }
+                }
+                continue;
+            }
+            if(included) {
+                TransitRouteStop transitRouteStop = transitRouteStops.get(i);
+                transitRouteStop = schedule.getFactory().createTransitRouteStop(transitRouteStop.getStopFacility(), transitRouteStop.getArrivalOffset().orElse(0)-lastArrivalOffset, transitRouteStop.getDepartureOffset().orElse(0)-lastDepartureOffset);
+                currentTransitRouteStops.add(transitRouteStop);
+            }
+        }
+        if(currentTransitRouteStops.size() > 0) {
+            TransitRoute currentTransitRoute = schedule.getFactory().createTransitRoute(Id.create(transitRoute.getId().toString()+"_"+newTransitRoutes.size(), TransitRoute.class), createNetworkRoute(linkNetworkRouteFactory, currentLinkIds), currentTransitRouteStops, transitRoute.getTransportMode());
+            for(Departure departure: transitRoute.getDepartures().values()) {
+                Departure newDeparture = schedule.getFactory().createDeparture(Id.create(departure.getId().toString()+"_"+newTransitRoutes.size(), Departure.class), departure.getDepartureTime()+lastDepartureOffset);
+                currentTransitRoute.addDeparture(newDeparture);
+            }
+            newTransitRoutes.add(currentTransitRoute);
+        }
+        return newTransitRoutes;
+    }
+
     static public void main(String[] args) throws ConfigurationException, NumberFormatException, IOException {
         CommandLine cmd = new CommandLine.Builder(args) //
                 .requireOptions("schedule-path", "network-path", "facilities-path", "travel-times-path", "frequencies-path", "vehicles-path",
@@ -85,6 +170,7 @@ public class AdjustSchedule {
         new MatsimNetworkReader(scenario.getNetwork()).readFile(cmd.getOptionStrict("network-path"));
         Network network = scenario.getNetwork();
 
+        //To store the names of TransitStopFacility objects that are added to the schedule during the process
         Map<String, TransitStopFacility> facilitiesByName = new HashMap<>();
 
         Vehicles transitVehicles = VehicleUtils.createVehiclesContainer();
@@ -127,6 +213,7 @@ public class AdjustSchedule {
                     schedule.addStopFacility(facility);
                     facilitiesByName.put(facility.getName(), facility);
                     if (doMapping) {
+                        // In case we do the mapping, we create a node and a link for each new TransitStopFacility
                         Node stopNode = network.getFactory().createNode(Id.createNodeId("GPE:" + code), facility.getCoord());
                         network.addNode(stopNode);
 
@@ -141,13 +228,15 @@ public class AdjustSchedule {
             reader.close();
         }
 
+        //A map of (transit line name) -> (a list of the TransitStopFacility objects of the stops of the line (ordered))
         Map<String, List<TransitStopFacility>> routes = new HashMap<>();
+        //For each transit line, stores the travel time between each two consecutive stops of the line. Note that if the travel time a->b is stored, b->a isn't.
         Map<String, Map<Id<TransitStopFacility>, Map<Id<TransitStopFacility>, Double>>> otherTravelTimes = new HashMap<>();
+
         Map<String, Id<TransitLine>> lineStopsFallbacks = new HashMap<>();
+        //Line 14 is redefined
         lineStopsFallbacks.put("14", Id.create("IDFM:C01384", TransitLine.class));
         {
-            // Set up lines
-            // Reading the the
             String routesPath = cmd.getOptionStrict("travel-times-path");
             String line;
             List<String> header = null;
@@ -161,12 +250,13 @@ public class AdjustSchedule {
                     header = row;
                 } else {
                     String transitLine = row.get(header.indexOf(TRAVEL_TIMES_CSV_TO_LINE_ID_COLUMN));
-                    List<TransitStopFacility> stops = routes.computeIfAbsent(transitLine, n -> new LinkedList<>());
                     Map<Id<TransitStopFacility>, Map<Id<TransitStopFacility>, Double>> lineTravelTimes = otherTravelTimes.computeIfAbsent(transitLine, n -> new HashMap<>());
                     String fromName = row.get(header.indexOf(TRAVEL_TIMES_CSV_FROM_STOP_NAME_COLUMN));
                     String toName = row.get(header.indexOf(TRAVEL_TIMES_CSV_TO_STOP_NAME_COLUMN));
+                    //Let's retrieve the TransitStopFacility objects either from the recently added ones or from existing ones if we are overriding the line
                     TransitStopFacility fromStop = getStopFacilityFromMapOrFallbackTransitLine(fromName, facilitiesByName, schedule, transitLine, lineStopsFallbacks);
                     TransitStopFacility toStop = getStopFacilityFromMapOrFallbackTransitLine(toName, facilitiesByName, schedule, transitLine, lineStopsFallbacks);
+
                     double travelTime = Double.parseDouble(row.get(header.indexOf(TRAVEL_TIMES_CSV_TRAVEL_TIME_COLUMN)));
                     if(travelTime < 0 || overrideTravelTimes) {
                         double euclideanDistance_km = CoordUtils.calcEuclideanDistance(fromStop.getCoord(), toStop.getCoord()) * 1e-3;
@@ -174,6 +264,8 @@ public class AdjustSchedule {
                     }
                     lineTravelTimes.computeIfAbsent(fromStop.getId(), n -> new HashMap<>()).put(toStop.getId(), travelTime);
                     lineTravelTimes.computeIfAbsent(toStop.getId(), n -> new HashMap<>()).put(fromStop.getId(), travelTime);
+                    //We build the stop sequence for the line (we suppose that the stops are mentioned in the right order in the file)
+                    List<TransitStopFacility> stops = routes.computeIfAbsent(transitLine, n -> new LinkedList<>());
                     if (stops.size() == 0) {
                         stops.add(fromStop);
                     } else if (!fromName.equals(stops.get(stops.size() - 1).getName())) {
@@ -189,7 +281,8 @@ public class AdjustSchedule {
         Map<String, String> modes = new HashMap<>();
 
 
-        { // Set up departures
+        {
+            // Reading the frequencies and transport modes for each line
             String routesPath = cmd.getOptionStrict("frequencies-path");
             String line;
             List<String> header = null;
@@ -214,7 +307,8 @@ public class AdjustSchedule {
             reader.close();
         }
 
-        {//Creating the transit lines (and overriding the ones with fallbacks)
+        {
+            //Creating the transit lines (and overriding the ones with fallbacks)
             for (String line : routes.keySet()) {
                 Id<TransitLine> transitLineId = Id.create("GPE:" + line, TransitLine.class);
                 if (lineStopsFallbacks.containsKey(line)) {
@@ -283,16 +377,8 @@ public class AdjustSchedule {
                 NetworkRoute forwardNetworkRoute = null;
                 NetworkRoute backwardNetworkRoute = null;
                 if(doMapping) {
-                    forwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(forwardLinkIds.get(0),
-                            forwardLinkIds.get(forwardLinkIds.size() - 1));
-                    forwardNetworkRoute.setLinkIds(forwardLinkIds.get(0), forwardLinkIds.subList(1, forwardLinkIds.size() - 1),
-                            forwardLinkIds.get(forwardLinkIds.size() - 1));
-
-                    backwardNetworkRoute = (NetworkRoute) routeFactory.createRoute(backwardLinkIds.get(0),
-                            backwardLinkIds.get(backwardLinkIds.size() - 1));
-                    backwardNetworkRoute.setLinkIds(backwardLinkIds.get(0),
-                            backwardLinkIds.subList(1, backwardLinkIds.size() - 1),
-                            backwardLinkIds.get(backwardLinkIds.size() - 1));
+                    forwardNetworkRoute = createNetworkRoute(routeFactory, forwardLinkIds);
+                    backwardNetworkRoute = createNetworkRoute(routeFactory, backwardLinkIds);
                 }
 
 
@@ -328,24 +414,73 @@ public class AdjustSchedule {
             }
         }
 
+        {
+            String rightBorder = "Savigny-sur-Orge";
+            String leftBorder = "Massy - Palaiseau";
+            List<String> borders = new ArrayList<>();
+            borders.add(rightBorder);
+            borders.add(leftBorder);
+            Id<TransitLine> transitLineId = Id.create("IDFM:C01727", TransitLine.class);
+            VehicleType vehicleType = null;
+
+             if(schedule.getTransitLines().containsKey(transitLineId)) {
+                TransitLine transitLine = schedule.getTransitLines().get(transitLineId);
+                Set<TransitRoute> transitRoutesToRemove = new HashSet<>();
+                List<TransitRoute> transitRoutesToAdd = new ArrayList<>();
+                for (TransitRoute transitRoute: transitLine.getRoutes().values()) {
+                    boolean containsLeftBorder = false;
+                    boolean containsRightBorder = false;
+                    for(TransitRouteStop transitRouteStop: transitRoute.getStops()) {
+                        if(transitRouteStop.getStopFacility().getName().equals(leftBorder)) {
+                            containsLeftBorder = true;
+                        } else if(transitRouteStop.getStopFacility().getName().equals(rightBorder)) {
+                            containsRightBorder = true;
+                        }
+                    }
+                    if(containsRightBorder && containsLeftBorder) {
+                        List<TransitRoute> newTransitRoutes = splitTransitRoute(transitRoute, borders, schedule, network);
+                        if(newTransitRoutes.size() != 1) {
+                            transitRoutesToRemove.add(transitRoute);
+                            transitRoutesToAdd.addAll(newTransitRoutes);
+                            if(vehicleType==null) {
+                                for(Departure departure: transitRoute.getDepartures().values()){
+                                    vehicleType = transitVehicles.getVehicles().get(departure.getVehicleId()).getType();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                transitRoutesToRemove.forEach(transitLine::removeRoute);
+                for(TransitRoute transitRoute: transitRoutesToAdd) {
+                    for(Departure departure: transitRoute.getDepartures().values()) {
+                        Vehicle vehicle = transitVehicles.getFactory().createVehicle(Id.createVehicleId(departure.getId().toString()), vehicleType);
+                        transitVehicles.addVehicle(vehicle);
+                    }
+                }
+                transitRoutesToAdd.forEach(transitLine::addRoute);
+            }
+        }
+
         // Remove unused stop facilities and their related transfer times
         // First find the stop facilities that do not appear in any transitRoute
-        Set<TransitStopFacility> transitStopFacilities = new HashSet<>(schedule.getFacilities().values());
+        Set<TransitStopFacility> transitStopFacilitiesToRemove = new HashSet<>(schedule.getFacilities().values());
 
         //At the same time find the vehicles that do not appear in any departure
-        Set<Id<Vehicle>> vehiclesIds = new HashSet<>(transitVehicles.getVehicles().keySet());
+        Set<Id<Vehicle>> vehiclesIdsToRemove = new HashSet<>(transitVehicles.getVehicles().keySet());
 
         for (TransitLine transitLine : schedule.getTransitLines().values()) {
             for (TransitRoute transitRoute : transitLine.getRoutes().values()) {
                 for (TransitRouteStop transitRouteStop : transitRoute.getStops()) {
-                    transitStopFacilities.remove(transitRouteStop.getStopFacility());
+                    transitStopFacilitiesToRemove.remove(transitRouteStop.getStopFacility());
                 }
                 for (Departure departure : transitRoute.getDepartures().values()) {
-                    vehiclesIds.remove(departure.getVehicleId());
+                    vehiclesIdsToRemove.remove(departure.getVehicleId());
                 }
             }
         }
-        for (TransitStopFacility transitStopFacility : transitStopFacilities) {
+        for (TransitStopFacility transitStopFacility : transitStopFacilitiesToRemove) {
+            log.info(String.format("Removing transit stop facility %s[%s]", transitStopFacility.getId().toString(), transitStopFacility.getName()));
             schedule.removeStopFacility(transitStopFacility);
             // find the transfer times related to the current stop facility
             MinimalTransferTimes.MinimalTransferTimesIterator iter = schedule.getMinimalTransferTimes().iterator();
@@ -362,7 +497,8 @@ public class AdjustSchedule {
                 schedule.getMinimalTransferTimes().remove(entry.getKey(), entry.getValue());
             }
         }
-        for (Id<Vehicle> vehicleId : vehiclesIds) {
+        for (Id<Vehicle> vehicleId : vehiclesIdsToRemove) {
+            log.info(String.format("Removing vehicle %s", vehicleId.toString()));
             transitVehicles.removeVehicle(vehicleId);
         }
 
