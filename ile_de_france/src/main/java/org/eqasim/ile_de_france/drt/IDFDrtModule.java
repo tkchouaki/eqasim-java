@@ -21,8 +21,10 @@ import org.eqasim.ile_de_france.feeder.FeederUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFModeParameters;
 import org.matsim.core.config.CommandLine;
+import org.matsim.core.config.ConfigGroup;
 
 import java.io.File;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 public class IDFDrtModule extends AbstractEqasimExtension {
@@ -81,11 +83,10 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 
 	@Provides
 	@Singleton
-	public IDFDrtCostParameters provideCostParameters(EqasimConfigGroup config) {
+	public IDFDrtCostParameters provideCostParameters(EqasimConfigGroup config) throws URISyntaxException {
 		IDFDrtCostParameters parameters = IDFDrtCostParameters.buildDefault();
-
 		if (config.getCostParametersPath() != null) {
-			ParameterDefinition.applyFile(new File(config.getCostParametersPath()), parameters);
+			ParameterDefinition.applyFile(new File(ConfigGroup.getInputFileURL(getConfig().getContext(), config.getCostParametersPath()).toURI()), parameters);
 		}
 
 		ParameterDefinition.applyCommandLine("cost-parameter", commandLine, parameters);
@@ -94,11 +95,11 @@ public class IDFDrtModule extends AbstractEqasimExtension {
 
 	@Provides
 	@Singleton
-	public IDFDrtModeParameters provideModeParameters(EqasimConfigGroup config) {
+	public IDFDrtModeParameters provideModeParameters(EqasimConfigGroup config) throws URISyntaxException {
 		IDFDrtModeParameters parameters = IDFDrtModeParameters.buildDefault();
 
 		if (config.getModeParametersPath() != null) {
-			ParameterDefinition.applyFile(new File(config.getModeParametersPath()), parameters);
+			ParameterDefinition.applyFile(new File(ConfigGroup.getInputFileURL(getConfig().getContext(), config.getModeParametersPath()).toURI()), parameters);
 		}
 
 		ParameterDefinition.applyCommandLine("mode-parameter", commandLine, parameters);
