@@ -28,7 +28,6 @@ public class RunDrtSimulation {
                 .build();
 
         IDFDrtConfigurator configurator = new IDFDrtConfigurator();
-        boolean useFeeder = cmd.hasOption("use-feeder") && Boolean.parseBoolean(cmd.getOptionStrict("use-feeder"));
 
         Config config;
         ConfigGroup[] configGroups = configurator.getConfigGroups();

@@ -1,7 +1,6 @@
 package org.eqasim.ile_de_france.drt;
 
 import org.eqasim.ile_de_france.IDFConfigurator;
-import org.eqasim.ile_de_france.drt.IDFDrtConfigGroup;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.contrib.drt.routing.DrtRoute;
 import org.matsim.contrib.drt.routing.DrtRouteFactory;
