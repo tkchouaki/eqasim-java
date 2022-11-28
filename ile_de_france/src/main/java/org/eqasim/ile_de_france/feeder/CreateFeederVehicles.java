@@ -1,13 +1,11 @@
 package org.eqasim.ile_de_france.feeder;
 
 import org.apache.log4j.Logger;
-import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.IdMap;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.api.core.v01.network.Node;
 import org.matsim.contrib.dvrp.fleet.*;
 import org.matsim.core.config.CommandLine;
 import org.matsim.core.config.Config;
@@ -19,7 +17,6 @@ import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.*;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.util.*;
 
 public class CreateFeederVehicles {
@@ -86,17 +83,20 @@ public class CreateFeederVehicles {
                 }
             }
             reader.close();
-            for(Id<TransitStopFacility> transitStopFacilityId: transitStopFacilityIdToLinkId.keySet()) {
-                int facilityVehiclesNumber = (int) (vehiclesNumber * proportions.get(transitStopFacilityId) / sumWeights);
-                if (facilityVehiclesNumber == 0) {
-                    facilityVehiclesNumber = 1;
-                }
-                vehiclesNumberByFacility.put(transitStopFacilityId, facilityVehiclesNumber);
-            }
             logger.info("Identified " + transitStopFacilityIdToLinkId.size() + " relevant facilities");
             if(vehiclesNumber < transitStopFacilityIdToLinkId.size()){
                 throw new IllegalStateException(vehiclesNumber + " vehicles are not enough to guarantee at least one vehicle per facility with " + transitStopFacilityIdToLinkId.size() + " facilities");
             }
+            int addedVehicles = 0;
+            for(Id<TransitStopFacility> transitStopFacilityId: transitStopFacilityIdToLinkId.keySet()) {
+                double ratio = proportions.get(transitStopFacilityId) / sumWeights;
+                int facilityVehiclesNumber = 1 + (int) ((vehiclesNumber - transitStopFacilityIdToLinkId.size()) * ratio);
+                addedVehicles+=facilityVehiclesNumber;
+                vehiclesNumberByFacility.put(transitStopFacilityId, facilityVehiclesNumber);
+                logger.info(String.format("Facility %s gets %d vehicles %f%%", transitStopFacilityId.toString(), facilityVehiclesNumber, ratio*100));
+            }
+            assert addedVehicles == vehiclesNumber;
+
         }
 
 
