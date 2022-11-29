@@ -98,14 +98,19 @@ public class AdjustSchedule {
         boolean included=true;
         List<TransitRouteStop> currentTransitRouteStops = new ArrayList<>();
         List<Id<Link>> currentLinkIds = new ArrayList<>();
+        currentLinkIds.add(transitRoute.getRoute().getStartLinkId());
         double lastArrivalOffset = 0;
         double lastDepartureOffset = 0;
         LinkNetworkRouteFactory linkNetworkRouteFactory = new LinkNetworkRouteFactory();
         for(i=0;i<transitRouteStops.size();i++) {
             if(transitRoute.getRoute() != null) {
                 Link transitStopFacilityLink = network.getLinks().get(transitRouteStops.get(i).getStopFacility().getLinkId());
-                for(;j<transitRoute.getRoute().getLinkIds().size() && !transitStopFacilityLink.getToNode().getId().equals(network.getLinks().get(transitRoute.getRoute().getLinkIds().get(j)).getFromNode().getId());j++) {
-                    currentLinkIds.add(transitRoute.getRoute().getLinkIds().get(i));
+                for(;j<transitRoute.getRoute().getLinkIds().size() && !transitStopFacilityLink.getId().equals(currentLinkIds.get(currentLinkIds.size()-1));j++) {
+                    currentLinkIds.add(transitRoute.getRoute().getLinkIds().get(j));
+                }
+                if(j==transitRoute.getRoute().getLinkIds().size() && !transitStopFacilityLink.getId().equals(currentLinkIds.get(currentLinkIds.size()-1))) {
+                    currentLinkIds.add(transitRoute.getRoute().getEndLinkId());
+                    assert transitStopFacilityLink.getId().equals(currentLinkIds.get(currentLinkIds.size()-1));
                 }
             }
             if(borders.contains(transitRouteStops.get(i).getStopFacility().getName())) {
@@ -188,8 +193,7 @@ public class AdjustSchedule {
             // Set up stop facilities
             // Reading facilities from CSV
             // Creating stop facilities, adding them to the schedule, & to the network by creating a node on each new facility
-            // Why create a link from & to the facility node
-            // Ignoring previously existing facilities
+            // Why create a link from & to the facility node ?
             String facilitiesPath = cmd.getOptionStrict("facilities-path");
             String line;
             List<String> header = null;
@@ -237,6 +241,7 @@ public class AdjustSchedule {
         //Line 14 is redefined
         lineStopsFallbacks.put("14", Id.create("IDFM:C01384", TransitLine.class));
         {
+            //Reading the lines' information (order of stops and travel times)
             String routesPath = cmd.getOptionStrict("travel-times-path");
             String line;
             List<String> header = null;
@@ -456,6 +461,7 @@ public class AdjustSchedule {
                     for(Departure departure: transitRoute.getDepartures().values()) {
                         Vehicle vehicle = transitVehicles.getFactory().createVehicle(Id.createVehicleId(departure.getId().toString()), vehicleType);
                         transitVehicles.addVehicle(vehicle);
+                        departure.setVehicleId(vehicle.getId());
                     }
                 }
                 transitRoutesToAdd.forEach(transitLine::addRoute);
@@ -497,9 +503,55 @@ public class AdjustSchedule {
                 schedule.getMinimalTransferTimes().remove(entry.getKey(), entry.getValue());
             }
         }
+        //Removing vehicles
         for (Id<Vehicle> vehicleId : vehiclesIdsToRemove) {
             log.info(String.format("Removing vehicle %s", vehicleId.toString()));
             transitVehicles.removeVehicle(vehicleId);
+        }
+
+        //Remove routes with no departures and lines with no routes
+        List<TransitLine> linesToRemove = new ArrayList<>();
+        for(TransitLine transitLine: schedule.getTransitLines().values()) {
+            List<TransitRoute> routesToRemove = new ArrayList<>();
+            for(TransitRoute transitRoute: transitLine.getRoutes().values()) {
+                if(transitRoute.getDepartures().size() == 0) {
+                    log.info(String.format("Removing route %s from line %s", transitRoute.getId().toString(), transitLine.getId().toString()));
+                    routesToRemove.add(transitRoute);
+                }
+            }
+            routesToRemove.forEach(transitLine::removeRoute);
+            if(transitLine.getRoutes().size() == 0) {
+                log.info(String.format("Removing line %s", transitLine.getId().toString()));
+                linesToRemove.add(transitLine);
+            }
+        }
+        linesToRemove.forEach(schedule::removeTransitLine);
+
+        for(TransitLine transitLine: schedule.getTransitLines().values()) {
+            for(TransitRoute transitRoute: transitLine.getRoutes().values()) {
+                if(transitRoute.getId().toString().equals("IDFM:SNCF:42677-C01727-e710dc12-6e4e-455c-895f-50348530edb5_1")) {
+                    System.out.println("Heey");
+                }
+                List<Id<Link>> stopFacilitiesLinks = new ArrayList<>();
+                for(TransitRouteStop transitRouteStop: transitRoute.getStops()) {
+                    stopFacilitiesLinks.add(transitRouteStop.getStopFacility().getLinkId());
+                }
+                NetworkRoute networkRoute = transitRoute.getRoute();
+                assert stopFacilitiesLinks.get(0).equals(networkRoute.getLinkIds().get(0));
+                assert transitRoute.getStops().get(0).getStopFacility().getCoord().equals(network.getLinks().get(networkRoute.getStartLinkId()).getCoord());
+                int j=0;
+                int i=1;
+                for(; i<stopFacilitiesLinks.size() - 1; i++){
+                    while(j<networkRoute.getLinkIds().size() && !networkRoute.getLinkIds().get(j).equals(stopFacilitiesLinks.get(i))) {
+                        j++;
+                    }
+                    assert j<networkRoute.getLinkIds().size() && networkRoute.getLinkIds().get(j).equals(stopFacilitiesLinks.get(i));
+                    assert transitRoute.getStops().get(i).getStopFacility().getCoord().equals(network.getLinks().get(networkRoute.getLinkIds().get(j)).getCoord());
+                }
+                assert j == networkRoute.getLinkIds().size()-1;
+                assert networkRoute.getEndLinkId().equals(stopFacilitiesLinks.get(i));
+                assert transitRoute.getStops().get(i).getStopFacility().getCoord().equals(network.getLinks().get(networkRoute.getEndLinkId()).getCoord());
+            }
         }
 
         new TransitScheduleWriter(schedule).writeFile(cmd.getOptionStrict("output-schedule-path"));
