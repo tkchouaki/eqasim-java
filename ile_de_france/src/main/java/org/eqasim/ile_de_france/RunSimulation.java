@@ -14,12 +14,18 @@ import org.matsim.core.scenario.ScenarioUtils;
 public class RunSimulation {
 	static public void main(String[] args) throws ConfigurationException {
 		CommandLine cmd = new CommandLine.Builder(args) //
-				.requireOptions("config-path") //
+				.requireOptions("config-path")
+				.allowOptions("cba")//
 				.allowPrefixes("mode-choice-parameter", "cost-parameter") //
 				.build();
 
+		boolean cba = cmd.hasOption("cba") && Boolean.parseBoolean(cmd.getOptionStrict("cba"));
+
 		IDFConfigurator configurator = new IDFConfigurator();
 		Config config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"), configurator.getConfigGroups());
+		if(cba) {
+			CbaUtils.adaptConfig(config, false);
+		}
 		cmd.applyConfiguration(config);
 
 		Scenario scenario = ScenarioUtils.createScenario(config);
@@ -32,6 +38,9 @@ public class RunSimulation {
 		controller.addOverridingModule(new EqasimAnalysisModule());
 		controller.addOverridingModule(new EqasimModeChoiceModule());
 		controller.addOverridingModule(new IDFModeChoiceModule(cmd));
+		if(cba) {
+			CbaUtils.adaptControler(controller);
+		}
 		controller.run();
 	}
 }

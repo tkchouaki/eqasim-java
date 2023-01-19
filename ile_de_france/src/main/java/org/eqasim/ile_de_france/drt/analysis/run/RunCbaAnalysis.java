@@ -7,6 +7,7 @@ import org.eqasim.core.components.transit.events.PublicTransitEventMapper;
 import org.eqasim.core.misc.InjectorBuilder;
 import org.eqasim.core.simulation.analysis.EqasimAnalysisModule;
 import org.eqasim.core.simulation.mode_choice.EqasimModeChoiceModule;
+import org.eqasim.ile_de_france.CbaUtils;
 import org.eqasim.ile_de_france.drt.IDFDrtConfigGroup;
 import org.eqasim.ile_de_france.drt.IDFDrtConfigurator;
 import org.eqasim.ile_de_france.drt.IDFDrtModule;
@@ -69,47 +70,7 @@ public class RunCbaAnalysis {
             drtConfigGroup.setVehiclesFile("drt_vehicles.xml.gz");
         }
 
-        DrtAnalyzerConfigGroup drtAnalyzerConfigGroup = new DrtAnalyzerConfigGroup();
-        drtAnalyzerConfigGroup.setMode("drt");
-        drtAnalyzerConfigGroup.setTripsSheetName("trips_drt");
-        drtAnalyzerConfigGroup.setVehiclesSheetName("vehicles_drt");
-
-        PtAnalyzerConfigGroup ptAnalyzerConfigGroup = new PtAnalyzerConfigGroup();
-        ptAnalyzerConfigGroup.setMode("pt");
-        ptAnalyzerConfigGroup.setTripsSheetName("trips_pt");
-        ptAnalyzerConfigGroup.setVehiclesSheetName("vehicles_pt");
-
-        AgentsAnalyzerConfigGroup agentsAnalyzerConfigGroup = new AgentsAnalyzerConfigGroup();
-        agentsAnalyzerConfigGroup.setScoresSheetName("scores");
-
-        PrivateVehiclesAnalyzerConfigGroup privateVehiclesAnalyzerConfigGroup = new PrivateVehiclesAnalyzerConfigGroup();
-        privateVehiclesAnalyzerConfigGroup.setMode("car");
-        privateVehiclesAnalyzerConfigGroup.setTripsSheetName("trips_pv");
-        privateVehiclesAnalyzerConfigGroup.setIgnoredActivityTypes("DrtStay,DrtBusStop");
-
-        GenericAnalyzerConfigGroup passengerAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        passengerAnalyzerConfigGroup.setTripsSheetName("trips_car_passenger");
-        passengerAnalyzerConfigGroup.setMode("car_passenger");
-
-        GenericAnalyzerConfigGroup walkAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        walkAnalyzerConfigGroup.setTripsSheetName("trips_walk");
-        walkAnalyzerConfigGroup.setMode("walk");
-
-        GenericAnalyzerConfigGroup bikeAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        bikeAnalyzerConfigGroup.setTripsSheetName("trips_bike");
-        bikeAnalyzerConfigGroup.setMode("bike");
-
-
-        CbaConfigGroup cbaConfigGroup = new CbaConfigGroup();
-        cbaConfigGroup.addParameterSet(bikeAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(walkAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(passengerAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(privateVehiclesAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(agentsAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(ptAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(drtAnalyzerConfigGroup);
-
-        config.addModule(cbaConfigGroup);
+        CbaUtils.adaptConfig(config, true);
 
 
         Scenario scenario = ScenarioUtils.createScenario(config);
@@ -148,7 +109,7 @@ public class RunCbaAnalysis {
         controller.addOverridingModule(new EqasimAnalysisModule());
         controller.addOverridingModule(new EqasimModeChoiceModule());
         controller.addOverridingModule(new IDFModeChoiceModule(cmd));
-        controller.addOverridingModule(new CbaModule());
+        CbaUtils.adaptControler(controller);
 
         { // Configure controller for DRT
             controller.addOverridingModule(new DvrpModule());

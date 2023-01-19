@@ -27,6 +27,8 @@ public class RunCbaAnalysis {
                 .requireOptions("config-path", "plans-path", "output-path")
                 .build();
 
+
+
         IDFConfigurator configurator = new IDFConfigurator();
 
         Config config;
@@ -45,41 +47,7 @@ public class RunCbaAnalysis {
         config.transit().setVehiclesFile("output_transitVehicles.xml.gz");
 
 
-        PtAnalyzerConfigGroup ptAnalyzerConfigGroup = new PtAnalyzerConfigGroup();
-        ptAnalyzerConfigGroup.setMode("pt");
-        ptAnalyzerConfigGroup.setTripsSheetName("trips_pt");
-        ptAnalyzerConfigGroup.setVehiclesSheetName("vehicles_pt");
-
-        AgentsAnalyzerConfigGroup agentsAnalyzerConfigGroup = new AgentsAnalyzerConfigGroup();
-        agentsAnalyzerConfigGroup.setScoresSheetName("scores");
-
-        PrivateVehiclesAnalyzerConfigGroup privateVehiclesAnalyzerConfigGroup = new PrivateVehiclesAnalyzerConfigGroup();
-        privateVehiclesAnalyzerConfigGroup.setMode("car");
-        privateVehiclesAnalyzerConfigGroup.setTripsSheetName("trips_pv");
-        privateVehiclesAnalyzerConfigGroup.setIgnoredActivityTypes("DrtStay,DrtBusStop");
-
-        GenericAnalyzerConfigGroup passengerAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        passengerAnalyzerConfigGroup.setTripsSheetName("trips_car_passenger");
-        passengerAnalyzerConfigGroup.setMode("car_passenger");
-
-        GenericAnalyzerConfigGroup walkAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        walkAnalyzerConfigGroup.setTripsSheetName("trips_walk");
-        walkAnalyzerConfigGroup.setMode("walk");
-
-        GenericAnalyzerConfigGroup bikeAnalyzerConfigGroup = new GenericAnalyzerConfigGroup();
-        bikeAnalyzerConfigGroup.setTripsSheetName("trips_bike");
-        bikeAnalyzerConfigGroup.setMode("bike");
-
-
-        CbaConfigGroup cbaConfigGroup = new CbaConfigGroup();
-        cbaConfigGroup.addParameterSet(bikeAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(walkAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(passengerAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(privateVehiclesAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(agentsAnalyzerConfigGroup);
-        cbaConfigGroup.addParameterSet(ptAnalyzerConfigGroup);
-
-        config.addModule(cbaConfigGroup);
+        CbaUtils.adaptConfig(config, false);
 
 
         Scenario scenario = ScenarioUtils.createScenario(config);
@@ -93,7 +61,8 @@ public class RunCbaAnalysis {
         controller.addOverridingModule(new EqasimAnalysisModule());
         controller.addOverridingModule(new EqasimModeChoiceModule());
         controller.addOverridingModule(new IDFModeChoiceModule(cmd));
-        controller.addOverridingModule(new CbaModule());
+
+        CbaUtils.adaptControler(controller);
 
         controller.run();
 
