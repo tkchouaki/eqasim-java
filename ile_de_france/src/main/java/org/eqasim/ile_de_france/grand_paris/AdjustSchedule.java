@@ -31,6 +31,23 @@ import org.matsim.vehicles.*;
 
 public class AdjustSchedule {
 
+    private static class TimeInterval {
+        private final int start;
+        private final int end;
+
+        public TimeInterval(int start, int end) {
+            if (start >= end) {
+                throw new IllegalStateException("Cannot create a TimeInterval with start >= end");
+            }
+            this.start = start;
+            this.end = end;
+        }
+
+        public boolean isIn(int time) {
+            return time >= this.start && time <= this.end;
+        }
+    }
+
     private static final Logger log = Logger.getLogger(AdjustSchedule.class);
 
     private static final String CSV_SEPARATOR = ";";
@@ -41,10 +58,15 @@ public class AdjustSchedule {
     private static final String TRAVEL_TIMES_CSV_TO_LINE_ID_COLUMN = "line_id";
     private static final String TRAVEL_TIMES_CSV_TRAVEL_TIME_COLUMN = "travel_time";
     private static final String FREQUENCIES_CSV_LINE_ID_COLUMN = "line_id";
-    private static final String FREQUENCIES_CSV_FREQUENCY_COLUMN = "frequency";
+    private static final String ON_PEAK_FREQUENCIES_CSV_FREQUENCY_COLUMN = "frequency_peak";
+    private static final String OFF_PEAK_FREQUENCIES_CSV_FREQUENCY_COLUMN = "frequency_off_peak";
     private static final String FREQUENCIES_CSV_MODE_COLUMN = "mode";
     private static final Double MAX_DEPARTURE_TIME = 24.0 * 3600;
     private static final String DEFAULT_SPEED_KM_H = "40";
+
+    private static final TimeInterval MORNING_PEAK_HOUR = new TimeInterval(75 * 360, 95 * 360);
+
+    private static final TimeInterval EVENING_PEAK_HOUR = new TimeInterval(165 * 360, 195 * 360);
 
     /**
      * Retrieves a TransitStopFacility object that has a given name under the context of a given TransitLine id follwoing the logic below:
@@ -282,7 +304,8 @@ public class AdjustSchedule {
             reader.close();
         }
 
-        Map<String, Integer> frequencies = new HashMap<>();
+        Map<String, Integer> onPeakFrequencies = new HashMap<>();
+        Map<String, Integer> offPeakFrequencies = new HashMap<>();
         Map<String, String> modes = new HashMap<>();
 
 
@@ -302,9 +325,11 @@ public class AdjustSchedule {
                     header = row;
                 } else {
                     String transitLine = row.get(header.indexOf(FREQUENCIES_CSV_LINE_ID_COLUMN));
-                    int frequency = 3600 / Integer.parseInt(row.get(header.indexOf(FREQUENCIES_CSV_FREQUENCY_COLUMN)));
+                    int onPeakFrequency = 60 * Integer.parseInt(row.get(header.indexOf(ON_PEAK_FREQUENCIES_CSV_FREQUENCY_COLUMN)));
+                    int offPeakFrequency = 60 * Integer.parseInt(row.get(header.indexOf(OFF_PEAK_FREQUENCIES_CSV_FREQUENCY_COLUMN)));
                     String mode = row.get(header.indexOf(FREQUENCIES_CSV_MODE_COLUMN));
-                    frequencies.put(transitLine, frequency);
+                    onPeakFrequencies.put(transitLine, onPeakFrequency);
+                    offPeakFrequencies.put(transitLine, offPeakFrequency);
                     modes.put(transitLine, mode);
                 }
             }
@@ -397,7 +422,9 @@ public class AdjustSchedule {
                 transitLine.addRoute(forwardRoute);
                 transitLine.addRoute(backwardRoute);
 
-                for (double departureTime = 0; departureTime < MAX_DEPARTURE_TIME; departureTime += frequencies.get(line)) {
+                Map<String, Integer> frequencies;
+
+                for (int departureTime = 0; departureTime < MAX_DEPARTURE_TIME; departureTime += frequencies.get(line)) {
                     Id<Departure> forwardDepartureId = Id.create("GPE:" + line + ":forward:" + Time.writeTime(departureTime), Departure.class);
                     Id<Departure> backwardDepartureId = Id.create("GPE:" + line + ":backward:" + Time.writeTime(departureTime), Departure.class);
 
@@ -415,6 +442,13 @@ public class AdjustSchedule {
 
                     forwardRoute.addDeparture(forwardDeparture);
                     backwardRoute.addDeparture(backwardDeparture);
+
+                    if(MORNING_PEAK_HOUR.isIn(departureTime) || EVENING_PEAK_HOUR.isIn(departureTime)) {
+                        frequencies = onPeakFrequencies;
+                    }
+                    else {
+                        frequencies = offPeakFrequencies;
+                    }
                 }
             }
         }
