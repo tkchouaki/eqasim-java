@@ -529,9 +529,6 @@ public class AdjustSchedule {
 
         for(TransitLine transitLine: schedule.getTransitLines().values()) {
             for(TransitRoute transitRoute: transitLine.getRoutes().values()) {
-                if(transitRoute.getId().toString().equals("IDFM:SNCF:42677-C01727-e710dc12-6e4e-455c-895f-50348530edb5_1")) {
-                    System.out.println("Heey");
-                }
                 List<Id<Link>> stopFacilitiesLinks = new ArrayList<>();
                 for(TransitRouteStop transitRouteStop: transitRoute.getStops()) {
                     stopFacilitiesLinks.add(transitRouteStop.getStopFacility().getLinkId());
