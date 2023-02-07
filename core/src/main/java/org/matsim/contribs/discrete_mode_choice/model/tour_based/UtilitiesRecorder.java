@@ -1,13 +1,9 @@
-package org.matsim.contribs.discrete_mode_choice.modules;
+package org.matsim.contribs.discrete_mode_choice.model.tour_based;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.IdMap;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
-import org.matsim.contribs.discrete_mode_choice.model.NoTourFoundForPersonEvent;
-import org.matsim.contribs.discrete_mode_choice.model.NoTourFoundForPersonEventHandler;
-import org.matsim.contribs.discrete_mode_choice.model.TourSelectorEvent;
-import org.matsim.contribs.discrete_mode_choice.model.TourSelectorEventHandler;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.controler.MatsimServices;
 import org.matsim.core.controler.events.BeforeMobsimEvent;

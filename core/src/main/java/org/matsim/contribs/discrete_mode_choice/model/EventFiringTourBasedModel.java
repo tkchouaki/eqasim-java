@@ -71,7 +71,6 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
             List<TourCandidate> utilityCandidates = new ArrayList<>();
             List<List<String>> tourModesExcludedBeforeEstimation = new ArrayList<>();
             List<TourCandidate> candidatesExcludedAfterEstimation = new ArrayList<>();
-
             if (tourFilter.filter(person, tourTrips)) {
                 ModeChainGenerator generator = modeChainGeneratorFactory.createModeChainGenerator(modes, person,
                         tourTrips);
@@ -133,8 +132,7 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
                 if (!selectedCandidate.isPresent()) {
                     switch (fallbackBehaviour) {
                         case INITIAL_CHOICE:
-                            logger.warn(
-                                    buildFallbackMessage(tripIndex, person, "Setting tour modes back to initial choice."));
+                            //logger.warn(buildFallbackMessage(tripIndex, person, "Setting tour modes back to initial choice."));
                             selectedCandidate = Optional.of(createFallbackCandidate(person, tourTrips, tourCandidates));
                             this.eventsManager.processEvent(new TourSelectorEvent(-1, person, utilityCandidates, (TourCandidate) selectedCandidate.get(), tourModesExcludedBeforeEstimation, candidatesExcludedAfterEstimation));
                             break;
@@ -144,13 +142,13 @@ public class EventFiringTourBasedModel implements DiscreteModeChoiceModel {
                             throw new NoFeasibleChoiceException(buildFallbackMessage(tripIndex, person, ""));
                     }
                 } else {
-                    this.eventsManager.processEvent(new TourSelectorEvent(-1, person, utilityCandidates, (TourCandidate) selectedCandidate.get(), tourModesExcludedBeforeEstimation, candidatesExcludedAfterEstimation));
+                    this.eventsManager.processEvent(new TourSelectorEvent(-1, person, utilityCandidates, (TourCandidate) selectedCandidate.get(), tourModesExcludedBeforeEstimation, candidatesExcludedAfterEstimation, "initial_choice"));
                 }
 
                 finalTourCandidate = (TourCandidate) selectedCandidate.get();
             } else {
                 finalTourCandidate = createFallbackCandidate(person, tourTrips, tourCandidates);
-                this.eventsManager.processEvent(new TourSelectorEvent(-1, person, utilityCandidates, finalTourCandidate, tourModesExcludedBeforeEstimation, candidatesExcludedAfterEstimation));
+                this.eventsManager.processEvent(new TourSelectorEvent(-1, person, utilityCandidates, finalTourCandidate, tourModesExcludedBeforeEstimation, candidatesExcludedAfterEstimation, "filtered_out"));
             }
 
             tourCandidates.add(finalTourCandidate);

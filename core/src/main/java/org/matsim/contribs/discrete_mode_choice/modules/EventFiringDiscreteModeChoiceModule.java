@@ -6,7 +6,9 @@ import com.google.inject.multibindings.MapBinder;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Population;
 import org.matsim.contribs.discrete_mode_choice.model.DiscreteModeChoiceTrip;
+import org.matsim.contribs.discrete_mode_choice.model.tour_based.SelectedToursRecorder;
 import org.matsim.contribs.discrete_mode_choice.model.tour_based.TourFilter;
+import org.matsim.contribs.discrete_mode_choice.model.tour_based.UtilitiesRecorder;
 import org.matsim.contribs.discrete_mode_choice.modules.config.DiscreteModeChoiceConfigGroup;
 import org.matsim.contribs.discrete_mode_choice.modules.utils.ModeChoiceInTheLoopChecker;
 import org.matsim.contribs.discrete_mode_choice.replanning.DiscreteModeChoiceStrategyProvider;
@@ -90,6 +92,9 @@ public class EventFiringDiscreteModeChoiceModule extends AbstractModule {
                     return new UtilitiesRecorder(matsimServices, eventsManager, population, dmcConfig.getWriteUtilities().equals(DiscreteModeChoiceConfigGroup.WriteUtilities.LAST));
                 }
             }).asEagerSingleton();
+        }
+        if(dmcConfig.getWriteTourChoices()) {
+            addControlerListenerBinding().to(SelectedToursRecorder.class).asEagerSingleton();
         }
     }
 }

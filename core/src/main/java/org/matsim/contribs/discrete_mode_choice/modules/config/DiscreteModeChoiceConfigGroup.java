@@ -44,6 +44,8 @@ public class DiscreteModeChoiceConfigGroup extends ReflectiveConfigGroup {
 
 	private WriteUtilities writeUtilities = WriteUtilities.NONE;
 
+	private boolean writeTourChoices = false;
+
 	public static final String GROUP_NAME = "DiscreteModeChoice";
 
 	public static final String PERFORM_REROUTE = "performReroute";
@@ -102,6 +104,11 @@ public class DiscreteModeChoiceConfigGroup extends ReflectiveConfigGroup {
 
 	public static final String WRITE_UTILITIES = "writeUtilities";
 	public static final String WRITE_UTILITIES_CMT = "Allows to write the utilities of agents plans in utilities.xml file in the iteration folder. Set to ALL to record and write utilities at every iteration, LAST for the last iteration only, NONE (default) to disable the recording";
+
+	public static final String WRITE_TOUR_CHOICES = "writeTourChoices";
+
+	public static final String WRITE_TOUR_CHOICES_CMT = "Logs during each iteration the tour choices that are performed in a x.tourSelection.xml file";
+
 
 	public DiscreteModeChoiceConfigGroup() {
 		super(GROUP_NAME);
@@ -284,11 +291,27 @@ public class DiscreteModeChoiceConfigGroup extends ReflectiveConfigGroup {
 	}
 
 	/**
-	 * @param writeUtilities --{@value #WRITE_UTILITIES_CMT}
+	 * @param writeUtilities -- {@value #WRITE_UTILITIES_CMT}
 	 */
 	@StringSetter(WRITE_UTILITIES)
 	public void setWriteUtilities(WriteUtilities writeUtilities) {
 		this.writeUtilities = writeUtilities;
+	}
+
+	/**
+	 * @return -- {@value #WRITE_TOUR_CHOICES_CMT}
+	 */
+	@StringGetter(WRITE_TOUR_CHOICES)
+	public boolean getWriteTourChoices() {
+		return this.writeTourChoices;
+	}
+
+	/**
+	 * @param writeTourChoices -- {@value #WRITE_TOUR_CHOICES_CMT}
+	 */
+	@StringSetter(WRITE_TOUR_CHOICES)
+	public void setWriteTourChoices(boolean writeTourChoices) {
+		this.writeTourChoices = writeTourChoices;
 	}
 
 	/**
@@ -641,6 +664,8 @@ public class DiscreteModeChoiceConfigGroup extends ReflectiveConfigGroup {
 		comments.put(TOUR_FILTERS, TOUR_FILTERS_CMT  + String.join( ", ", FilterModule.TOUR_COMPONENTS ) );
 		comments.put(TRIP_FILTERS, TRIP_FILTERS_CMT + String.join( ", ", FilterModule.TRIP_COMPONENTS ) );
 		comments.put(CACHED_MODES, CACHED_MODES_CMT );
+		comments.put(WRITE_UTILITIES, WRITE_UTILITIES_CMT);
+		comments.put(WRITE_TOUR_CHOICES, WRITE_TOUR_CHOICES_CMT);
 
 		return comments;
 	}
