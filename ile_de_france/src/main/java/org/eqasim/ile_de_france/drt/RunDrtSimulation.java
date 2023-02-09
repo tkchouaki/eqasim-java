@@ -5,9 +5,11 @@ import org.eqasim.core.simulation.analysis.EqasimAnalysisModule;
 import org.eqasim.core.simulation.mode_choice.EqasimModeChoiceModule;
 import org.eqasim.ile_de_france.CbaUtils;
 import org.eqasim.ile_de_france.drt.analysis.DvrpAnalsisModule;
+import org.eqasim.ile_de_france.drt.mode_choice.DrtEpsilonModule;
 import org.eqasim.ile_de_france.feeder.FeederModule;
 import org.eqasim.ile_de_france.feeder.analysis.FeederAnalysisModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.eqasim.ile_de_france.mode_choice.epsilon.EpsilonModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.contrib.drt.run.DrtConfigGroup;
 import org.matsim.contrib.drt.run.MultiModeDrtConfigGroup;
@@ -85,6 +87,11 @@ public class RunDrtSimulation {
                 controller.addOverridingModule(new FeederModule(null, scenario.getTransitSchedule()));
                 controller.addOverridingModule(new FeederAnalysisModule());
             }
+        }
+        {
+            //Add support of Epsilon utility sstimators
+            controller.addOverridingModule(new EpsilonModule());
+            controller.addOverridingModule(new DrtEpsilonModule());
         }
         if(cba) {
             CbaUtils.adaptControler(controller);

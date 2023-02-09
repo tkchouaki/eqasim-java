@@ -3,6 +3,7 @@ package org.eqasim.ile_de_france;
 import org.eqasim.core.simulation.analysis.EqasimAnalysisModule;
 import org.eqasim.core.simulation.mode_choice.EqasimModeChoiceModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.eqasim.ile_de_france.mode_choice.epsilon.EpsilonModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.core.config.CommandLine;
 import org.matsim.core.config.CommandLine.ConfigurationException;
@@ -38,6 +39,8 @@ public class RunSimulation {
 		controller.addOverridingModule(new EqasimAnalysisModule());
 		controller.addOverridingModule(new EqasimModeChoiceModule());
 		controller.addOverridingModule(new IDFModeChoiceModule(cmd));
+		//Support of Epsilon utility estimators
+		controller.addOverridingModule(new EpsilonModule());
 		if(cba) {
 			CbaUtils.adaptControler(controller);
 		}
