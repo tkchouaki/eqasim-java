@@ -30,6 +30,14 @@ public class WalkUtilityEstimator implements UtilityEstimator {
 		return parameters.walk.betaTravelTime_u_min * variables.travelTime_min;
 	}
 
+	protected WalkPredictor getPredictor() {
+		return this.predictor;
+	}
+
+	protected ModeParameters getParameters() {
+		return this.parameters;
+	}
+
 	@Override
 	public double estimateUtility(Person person, DiscreteModeChoiceTrip trip, List<? extends PlanElement> elements) {
 		WalkVariables variables = predictor.predictVariables(person, trip, elements);
