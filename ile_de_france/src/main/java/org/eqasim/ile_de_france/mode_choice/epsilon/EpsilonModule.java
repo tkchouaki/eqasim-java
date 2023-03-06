@@ -8,6 +8,7 @@ import org.eqasim.core.simulation.mode_choice.utilities.estimators.PtUtilityEsti
 import org.eqasim.core.simulation.mode_choice.utilities.estimators.WalkUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.utilities.estimators.IDFBikeUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.utilities.estimators.IDFCarUtilityEstimator;
+import org.eqasim.ile_de_france.mode_choice.utilities.estimators.IncentivizedWalkUtilityEstimator;
 import org.matsim.core.config.groups.GlobalConfigGroup;
 
 import com.google.inject.Key;
@@ -29,11 +30,14 @@ public class EpsilonModule extends AbstractEqasimExtension {
 		bind(IDFBikeUtilityEstimator.class);
 		bind(PtUtilityEstimator.class);
 		bind(WalkUtilityEstimator.class);
+		bind(IncentivizedWalkUtilityEstimator.class);
 
 		bindUtilityEstimator("epsilon_car").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_car")));
 		bindUtilityEstimator("epsilon_pt").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_pt")));
 		bindUtilityEstimator("epsilon_bike").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_bike")));
 		bindUtilityEstimator("epsilon_walk").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_walk")));
+		bindUtilityEstimator("epsilon_IncentivizedWalkUtilityEstimator").to(Key.get(EpsilonAdapter.class, Names.named("epsilon_IncentivizedWalkUtilityEstimator")));
+
 	}
 
 	@Provides
@@ -57,6 +61,12 @@ public class EpsilonModule extends AbstractEqasimExtension {
 	@Provides
 	@Named("epsilon_walk")
 	EpsilonAdapter provideEpsilonWalkEstimator(WalkUtilityEstimator delegate, EpsilonProvider epsilonProvider) {
+		return new EpsilonAdapter("walk", delegate, epsilonProvider);
+	}
+
+	@Provides
+	@Named("epsilon_IncentivizedWalkUtilityEstimator")
+	EpsilonAdapter provideepsilonIncentivizedWalkUtilityEstimator(IncentivizedWalkUtilityEstimator delegate, EpsilonProvider epsilonProvider) {
 		return new EpsilonAdapter("walk", delegate, epsilonProvider);
 	}
 }
