@@ -20,5 +20,7 @@ public class IDFDrtConfigurator extends IDFConfigurator {
     @Override
     public void configureScenario(Scenario scenario) {
         scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DrtRoute.class, new DrtRouteFactory());
+        DvrpConfigGroup dvrpConfigGroup = (DvrpConfigGroup) scenario.getConfig().getModules().get(DvrpConfigGroup.GROUP_NAME);
+        
     }
 }
