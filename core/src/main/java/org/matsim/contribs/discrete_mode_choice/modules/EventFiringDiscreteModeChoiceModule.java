@@ -68,8 +68,8 @@ public class EventFiringDiscreteModeChoiceModule extends AbstractModule {
 
         install(new EventFiringModelModule());
         install(new TimeInterpretationModule());
-        MapBinder.newMapBinder(binder(), String.class, TourFilter.class).addBinding(LAST_ITERATION_TOUR_FILTER).to(LastIterationTourFilter.class);
         if(!dmcConfig.getWriteUtilities().equals(DiscreteModeChoiceConfigGroup.WriteUtilities.NONE)) {
+            MapBinder.newMapBinder(binder(), String.class, TourFilter.class).addBinding(LAST_ITERATION_TOUR_FILTER).to(LastIterationTourFilter.class);
             if(dmcConfig.getWriteUtilities().equals(DiscreteModeChoiceConfigGroup.WriteUtilities.ALL)) {
                 throw new IllegalStateException("Logging the utilities on all iterations is not supported yet");
             }
