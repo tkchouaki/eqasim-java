@@ -21,7 +21,7 @@ public class IDFDrtConfigGroup extends ReflectiveConfigGroupWithConfigurablePara
 
     private boolean useFeeder = false;
 
-    private Double overridePcu = null;
+    private Double overridePcu = 1.0;
 
     @Nullable
     DrtRejectionPenaltyProviderConfigGroup drtRejectionPenaltyProvider;
