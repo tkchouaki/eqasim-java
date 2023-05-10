@@ -1,6 +1,7 @@
 package org.eqasim.core.analysis.pt;
 
 import org.eqasim.core.components.transit.events.PublicTransitEvent;
+import org.eqasim.core.scenario.cutter.extent.ScenarioExtent;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.IdMap;
 import org.matsim.api.core.v01.IdSet;
@@ -20,21 +21,24 @@ public class PublicTransportStationUsageListener implements GenericEventHandler 
 
     private final IdMap<TransitStopFacility, TransitStopFacility> facilitiesMap = new IdMap<>(TransitStopFacility.class);
 
+    private final ScenarioExtent extent;
+
     public PublicTransportStationUsageListener(TransitSchedule transitSchedule) {
-        this(transitSchedule, false);
+        this(transitSchedule, false, null);
     }
 
-    public PublicTransportStationUsageListener(TransitSchedule transitSchedule, boolean mergeOverlappingStops) {
+    public PublicTransportStationUsageListener(TransitSchedule transitSchedule, boolean mergeOverlappingStops, ScenarioExtent scenarioExtent) {
         this.transitSchedule = transitSchedule;
         this.mergeOverlappingStops = mergeOverlappingStops;
+        this.extent = scenarioExtent;
     }
 
     public PublicTransportStationUsageListener(TransitSchedule transitSchedule, Collection<String> modes) {
-        this(transitSchedule, false, modes);
+        this(transitSchedule, false, modes, null);
     }
 
-    public PublicTransportStationUsageListener(TransitSchedule transitSchedule, boolean mergeOverlappingStops, Collection<String> modes) {
-        this(transitSchedule, mergeOverlappingStops);
+    public PublicTransportStationUsageListener(TransitSchedule transitSchedule, boolean mergeOverlappingStops, Collection<String> modes, ScenarioExtent extent) {
+        this(transitSchedule, mergeOverlappingStops, extent);
         this.modes.addAll(modes);
         if(modes.size() > 0) {
             for(TransitLine transitLine: transitSchedule.getTransitLines().values()) {
@@ -55,17 +59,21 @@ public class PublicTransportStationUsageListener implements GenericEventHandler 
             Id<TransitStopFacility> egressStopId = publicTransitEvent.getEgressStopId();
             if(this.modes.size() == 0 || this.relevantStops.contains(accessStopId)) {
                 TransitStopFacility accessStop = this.transitSchedule.getFacilities().get(accessStopId);
-                if(this.mergeOverlappingStops) {
-                    accessStop = this.getMerged(accessStop);
+                if(this.extent == null || this.extent.isInside(accessStop.getCoord())) {
+                    if(this.mergeOverlappingStops) {
+                        accessStop = this.getMerged(accessStop);
+                    }
+                    PublicTransportStationUsageItem.initOrAddAccess(accessStop, this.usagesMap);
                 }
-                PublicTransportStationUsageItem.initOrAddAccess(accessStop, this.usagesMap);
             }
             if(this.modes.size() == 0 || this.relevantStops.contains(egressStopId)) {
                 TransitStopFacility egressStop = this.transitSchedule.getFacilities().get(egressStopId);
-                if(this.mergeOverlappingStops) {
-                    egressStop = this.getMerged(egressStop);
+                if(this.extent == null || this.extent.isInside(egressStop.getCoord())) {
+                    if(this.mergeOverlappingStops) {
+                        egressStop = this.getMerged(egressStop);
+                    }
+                    PublicTransportStationUsageItem.initOrAddEgress(egressStop, this.usagesMap);
                 }
-                PublicTransportStationUsageItem.initOrAddEgress(egressStop, this.usagesMap);
             }
         }
     }
