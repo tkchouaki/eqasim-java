@@ -83,7 +83,7 @@ public class CreateFeederVehicles {
         }
         reader.close();
         List<Id<TransitStopFacility>> facilities = new ArrayList<>(proportions.keySet());
-        if(maxStations > -1) {
+        if(maxStations > -1 && facilities.size() > maxStations) {
             Collections.sort(facilities, Comparator.comparingDouble(proportions::get));
             facilities = facilities.subList(facilities.size()-maxStations, facilities.size());
         }
