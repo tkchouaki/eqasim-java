@@ -9,8 +9,11 @@ public class IncentivizedWalkParameters extends IDFCostParameters{
     public boolean preventProfit = false;
 
     public static IncentivizedWalkParameters buildDefault() {
+        IDFCostParameters idfCostParameters = IDFCostParameters.buildDefault();
+
         IncentivizedWalkParameters parameters = new IncentivizedWalkParameters();
         parameters.incentive_EUR_km = 0.1;
+        parameters.carCost_EUR_km = idfCostParameters.carCost_EUR_km;
         return parameters;
     }
 }

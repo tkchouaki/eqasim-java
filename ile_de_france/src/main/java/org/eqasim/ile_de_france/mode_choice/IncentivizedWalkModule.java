@@ -5,10 +5,12 @@ import com.google.inject.Provider;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.name.Named;
+import org.eqasim.core.analysis.trips.TripListener;
 import org.eqasim.core.components.config.EqasimConfigGroup;
 import org.eqasim.core.simulation.mode_choice.AbstractEqasimExtension;
 import org.eqasim.core.simulation.mode_choice.ParameterDefinition;
 import org.eqasim.core.simulation.mode_choice.cost.CostModel;
+import org.eqasim.ile_de_france.mode_choice.costs.DecentivizedCarCostModel;
 import org.eqasim.ile_de_france.mode_choice.costs.IncentivizedWalkCostModel;
 import org.eqasim.ile_de_france.mode_choice.costs.IncentivizedWalkCostModelAdapter;
 import org.eqasim.ile_de_france.mode_choice.parameters.IDFCostParameters;
@@ -16,6 +18,8 @@ import org.eqasim.ile_de_france.mode_choice.parameters.IncentivizedWalkParameter
 import org.eqasim.ile_de_france.mode_choice.utilities.estimators.IncentivizedWalkUtilityEstimator;
 import org.eqasim.ile_de_france.mode_choice.utilities.predictors.IncentivizedWalkPredictor;
 import org.matsim.core.config.ConfigGroup;
+import org.matsim.core.controler.OutputDirectoryHierarchy;
+import org.matsim.core.replanning.ReplanningContext;
 import org.matsim.core.router.MainModeIdentifier;
 
 import java.io.File;
@@ -33,6 +37,7 @@ public class IncentivizedWalkModule extends AbstractEqasimExtension {
         bind(IDFCostParameters.class).to(IncentivizedWalkParameters.class);
 
         String suffix = "_incentivized_walk";
+        String decentivizedCarSuffix = "_decentivized";
 
         EqasimConfigGroup eqasimConfigGroup = (EqasimConfigGroup) getConfig().getModules().get(EqasimConfigGroup.GROUP_NAME);
         for(String costModel: eqasimConfigGroup.getCostModels().values()) {
@@ -52,7 +57,31 @@ public class IncentivizedWalkModule extends AbstractEqasimExtension {
                     public CostModel get() {
                         return new IncentivizedWalkCostModelAdapter(incentivizedWalkCostModel, factory.get(baseModel).get(), incentivizedWalkParameters);
                     }
-                });
+                }).asEagerSingleton();
+            }
+            if(costModel.endsWith(decentivizedCarSuffix)) {
+                String baseModel = costModel.substring(0, costModel.length()-decentivizedCarSuffix.length());
+                bindCostModel(costModel).toProvider(new Provider<>() {
+                    @Inject
+                    Map<String, Provider<CostModel>> factory;
+
+                    @Inject
+                    IncentivizedWalkCostModel incentivizedWalkCostModel;
+
+                    @Inject
+                    TripListener tripListener;
+
+                    @Inject
+                    ReplanningContext replanningContext;
+
+                    @Inject
+                    OutputDirectoryHierarchy outputDirectoryHierarchy;
+
+                    @Override
+                    public CostModel get() {
+                        return new DecentivizedCarCostModel(factory.get(baseModel).get(), incentivizedWalkCostModel, tripListener, replanningContext, outputDirectoryHierarchy);
+                    }
+                }).asEagerSingleton();
             }
         }
     }
@@ -67,8 +96,9 @@ public class IncentivizedWalkModule extends AbstractEqasimExtension {
         return incentivizedWalkParameters;
     }
     @Provides
+    @Singleton
     @Named("incentivized_walk")
     public CostModel provideIncentivizedWalkCostModel(IncentivizedWalkParameters incentivizedWalkParameters, MainModeIdentifier mainModeIdentifier) {
-        return new IncentivizedWalkCostModel(incentivizedWalkParameters, mainModeIdentifier);
+         return new IncentivizedWalkCostModel(incentivizedWalkParameters, mainModeIdentifier);
     }
 }
