@@ -3,6 +3,11 @@ package org.eqasim.ile_de_france;
 import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.name.Names;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.appender.FileAppender;
+import org.apache.logging.log4j.core.config.Configuration;
 import org.eqasim.core.analysis.PersonAnalysisFilter;
 import org.eqasim.core.analysis.trips.TripItem;
 import org.eqasim.core.analysis.trips.TripReaderFromPopulation;
@@ -11,6 +16,7 @@ import org.eqasim.core.scenario.validation.ScenarioValidator;
 import org.eqasim.core.simulation.analysis.EqasimAnalysisModule;
 import org.eqasim.core.simulation.mode_choice.EqasimModeChoiceModule;
 import org.eqasim.ile_de_france.mode_choice.IDFModeChoiceModule;
+import org.eqasim.ile_de_france.mode_choice.epsilon.EpsilonModule;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.population.Person;
@@ -24,6 +30,7 @@ import org.matsim.core.config.ConfigGroup;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.StrategyConfigGroup;
 import org.matsim.core.controler.AbstractModule;
+import org.matsim.core.controler.Controler;
 import org.matsim.core.controler.ControlerDefaultsModule;
 import org.matsim.core.controler.NewControlerModule;
 import org.matsim.core.controler.corelisteners.ControlerDefaultCoreListenersModule;
@@ -113,7 +120,22 @@ public class RunModeChoice {
                 .requireOptions("config-path")
                 .allowOptions("output-plans-path", "output-csv-path", "base-csv-path")
                 .allowOptions("travel-times-factors-path")
+                .allowOptions("logfile")
                 .build();
+
+        if(cmd.hasOption("logfile")) {
+            final LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
+            final Configuration contextConfig = ctx.getConfiguration();
+            final boolean appendToExistingFile = false;
+
+            FileAppender appender;
+            { // the "all" logfile
+                appender = FileAppender.newBuilder().setName("logfile").setLayout(Controler.DEFAULTLOG4JLAYOUT).withFileName(cmd.getOptionStrict("logfile")).withAppend(appendToExistingFile).build();
+                appender.start();
+                contextConfig.getRootLogger().addAppender(appender, Level.ALL, null);
+            }
+            ctx.updateLoggers();
+        }
 
         Config config = ConfigUtils.loadConfig(cmd.getOptionStrict("config-path"));
         Optional<String> outputPlansPath = cmd.getOption("output-plans-path");
@@ -155,7 +177,8 @@ public class RunModeChoice {
                 .addOverridingModule(new EqasimModeChoiceModule())
                 .addOverridingModule(new EqasimAnalysisModule())
                 .addOverridingModule(new ModelModule())
-                .addOverridingModule(new DiscreteModeChoiceModule());
+                .addOverridingModule(new DiscreteModeChoiceModule())
+                .addOverridingModule(new EpsilonModule());
         if(cmd.hasOption("travel-times-factors-path")) {
             String travelTimesFactorsPath = cmd.getOptionStrict("travel-times-factors-path");
             injectorBuilder.addOverridingModule(new AbstractModule() {
